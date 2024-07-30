@@ -1,18 +1,16 @@
 """Primary NWBConverter class for this dataset."""
 from neuroconv import NWBConverter
 from neuroconv.datainterfaces import (
-    SpikeGLXRecordingInterface,
+    OpenEphysRecordingInterface,
     PhySortingInterface,
 )
 
-from constantinople_lab_to_nwb.schierek_embargo_2024 import SchierekEmbargo2024BehaviorInterface
-
 
 class SchierekEmbargo2024NWBConverter(NWBConverter):
-    """Primary conversion class for my extracellular electrophysiology dataset."""
+    """Primary conversion class for converting the Neuropixels dataset from the Constantinople Lab."""
 
     data_interface_classes = dict(
-        Recording=SpikeGLXRecordingInterface,
+        RecordingAP=OpenEphysRecordingInterface,
+        RecordingLFP=OpenEphysRecordingInterface,
         Sorting=PhySortingInterface,
-        Behavior=SchierekEmbargo2024BehaviorInterface,
     )
