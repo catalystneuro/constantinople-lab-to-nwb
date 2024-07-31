@@ -59,10 +59,23 @@ def session_to_nwb(
     # source_data.update(dict(Behavior=dict()))
     # conversion_options.update(dict(Behavior=dict()))
 
-    recording_folder_name = Path(openephys_recording_folder_path).parent.stem
+    openephys_recording_folder_path = Path(openephys_recording_folder_path)
+    recording_root_folder_path = openephys_recording_folder_path.parent
+    recording_folder_name = recording_root_folder_path.stem
     subject_id, session_id = recording_folder_name.split("_", maxsplit=1)
 
-    converter = SchierekEmbargo2024NWBConverter(source_data=source_data)
+    converter_kwargs = dict(source_data=source_data)
+
+    # Look for probeinterface json file
+    probe_group_file_paths = list(recording_folder_path.rglob(f"{subject_id}*.json"))
+    if len(probe_group_file_paths) == 1:
+        probe_group_file_path = probe_group_file_paths[0]
+        converter_kwargs.update(
+            probe_group_file_path=str(probe_group_file_path),
+            probe_properties=["contact_shapes", "width"],
+        )
+
+    converter = SchierekEmbargo2024NWBConverter(**converter_kwargs, verbose=True)
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
