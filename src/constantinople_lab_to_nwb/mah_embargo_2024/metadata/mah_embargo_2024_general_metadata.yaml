@@ -1,0 +1,13 @@
+NWBFile:
+  related_publications:
+    - https://doi.org/10.1101/2023.03.14.532617
+  session_description:
+    A rich text description of the experiment. Can also just be the abstract of the publication.
+  institution: NYU Center for Neural Science
+  lab: Constantinople
+  experimenter:
+    - Mah, Andrew
+Subject:
+  species: Rattus norvegicus
+  age: TBD  # in ISO 8601, such as "P1W2D"
+  sex: O  # TODO: One of M, F, U, or O
