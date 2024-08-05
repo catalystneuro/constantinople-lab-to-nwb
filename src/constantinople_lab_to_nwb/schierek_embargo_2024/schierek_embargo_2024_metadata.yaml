@@ -10,4 +10,4 @@ NWBFile:
 Subject:
   species: Rattus norvegicus
   age: TBD  # in ISO 8601, such as "P1W2D"
-  sex: O  # TODO: One of M, F, U, or O
+  sex: U  # TODO: One of M, F, U, or O
