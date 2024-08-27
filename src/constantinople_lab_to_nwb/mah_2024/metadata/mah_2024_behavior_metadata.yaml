@@ -102,17 +102,17 @@ Behavior:
       expression_type: integer
       output_type: numeric
     DelayToReward:
-      name: delay_to_reward
-      description: The delay in seconds from the end of NoseInCenter to the reward port. Drawn from exponential distribution with mean = 2.5 seconds.
+      name: reward_delay
+      description: The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.
       expression_type: double
       output_type: numeric
     TargetDelayToReward:
-      name: target_delay_to_reward
-      description: The target delay in seconds from the end of NoseInCenter to the reward port.
+      name: target_reward_delay
+      description: The target delay in seconds to receive reward.
       expression_type: double
       output_type: numeric
     DTRincrement:
-      name: time_increment_for_delay_to_reward
+      name: time_increment_for_reward_delay
       description: The time increment during monotonic increase of reward delay.
       expression_type: double
       output_type: numeric
@@ -123,17 +123,17 @@ Behavior:
       output_type: numeric
     Block:
       name: block_type
-      description: The block type (High, Low or Test).
+      description: The block type (High, Low or Test). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. Test blocks are mixed blocks.
       expression_type: string
       output_type: string
     BlockLengthTest:
       name: num_trials_in_test_blocks
-      description: The number of trials in test blocks.
+      description: The number of trials in each mixed blocks.
       expression_type: integer
       output_type: numeric
     BlockLengthAd:
       name: num_trials_in_adaptation_blocks
-      description: The number of trials in adaptation blocks.
+      description: The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.
       expression_type: integer
       output_type: numeric
     PunishSound:
