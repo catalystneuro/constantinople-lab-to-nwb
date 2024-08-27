@@ -1,0 +1,1 @@
+ndx-structured-behavior @ git+https://github.com/rly/ndx-structured-behavior.git@main
