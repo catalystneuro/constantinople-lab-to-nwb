@@ -37,7 +37,7 @@ class Mah2024BpodInterface(BaseDataInterface):
 
         Parameters
         ----------
-        file_path: FilePathType
+        file_path: Union[str, Path]
             Path to the raw Bpod data file (.mat).
         default_struct_name: str
             The name of the struct in the .mat file that contains the Bpod data, default is 'SessionData'.
