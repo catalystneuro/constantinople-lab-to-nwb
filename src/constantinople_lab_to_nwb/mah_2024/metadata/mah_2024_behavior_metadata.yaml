@@ -45,6 +45,8 @@ Behavior:
       name: reward
     OptOut:
       name: opt_out
+    StopSound:
+      name: stop_sound
   StatesTable:
     description: Contains the start and end times of each state in the task.
   EventTypesTable:
@@ -245,4 +247,9 @@ Behavior:
       name: num_trials_in_stage_8
       description: Determines how many trials occur in stage 8 before transition.
       expression_type: integer
+      output_type: numeric
+    HiITI:
+      name: high_ITI
+      description: Task parameter. # no description provided
+      expression_type: double
       output_type: numeric
