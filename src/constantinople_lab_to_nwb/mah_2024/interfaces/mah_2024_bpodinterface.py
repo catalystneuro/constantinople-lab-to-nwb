@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import List
+from pathlib import Path
+from typing import List, Union
 from warnings import warn
 
 import numpy as np
@@ -16,7 +17,7 @@ from ndx_structured_behavior import (
     TaskArgumentsTable,
 )
 from neuroconv import BaseDataInterface
-from neuroconv.utils import FilePathType, DeepDict
+from neuroconv.utils import DeepDict
 
 from ndx_structured_behavior.utils import loadmat
 from pynwb import NWBFile
@@ -27,7 +28,7 @@ class Mah2024BpodInterface(BaseDataInterface):
 
     def __init__(
             self,
-            file_path: FilePathType,
+            file_path: Union[str, Path],
             default_struct_name: str = "SessionData",
             verbose: bool = True,
     ):
@@ -36,7 +37,7 @@ class Mah2024BpodInterface(BaseDataInterface):
 
         Parameters
         ----------
-        file_path: FilePathType
+        file_path: Union[str, Path]
             Path to the raw Bpod data file (.mat).
         default_struct_name: str
             The name of the struct in the .mat file that contains the Bpod data, default is 'SessionData'.
