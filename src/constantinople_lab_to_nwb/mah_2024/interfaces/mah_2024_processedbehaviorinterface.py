@@ -1,13 +1,12 @@
 """Primary class for converting experiment-specific behavior."""
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 from ndx_structured_behavior.utils import loadmat
 from neuroconv import BaseDataInterface
 from pynwb.file import NWBFile
-
-from neuroconv.utils import FilePathType
 
 
 def _transform_data(data: dict, session_index: int) -> pd.DataFrame:
@@ -48,7 +47,7 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
 
     def __init__(
             self,
-            file_path: FilePathType,
+            file_path: Union[str, Path],
             date: str,
             default_struct_name: str = "A",
             verbose: bool = True,
@@ -58,7 +57,7 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
 
         Parameters
         ----------
-        file_path: FilePathType
+        file_path: Union[str, Path]
             Path to the .mat file containing the processed behavior data.
         date: str
             Date of the session to convert.
@@ -70,7 +69,7 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
         self.date = date
         super().__init__(file_path=file_path, verbose=verbose)
 
-    def _read_file(self, file_path: FilePathType) -> pd.DataFrame:
+    def _read_file(self, file_path: Union[str, Path]) -> pd.DataFrame:
         behavior_data = loadmat(file_path)
         if self.default_struct_name not in behavior_data:
             raise ValueError(f"The struct name '{self.default_struct_name}' not found in {file_path}.")
