@@ -356,7 +356,7 @@ class Mah2024BpodInterface(BaseDataInterface):
 
             for sound_event in sound_events:
                 timestamps = events[sound_event]
-                if isinstance(timestamps, float):
+                if not isinstance(timestamps, list):
                     timestamps = [timestamps]
                 for timestamp in timestamps:
                     actions_table.add_row(
@@ -405,7 +405,7 @@ class Mah2024BpodInterface(BaseDataInterface):
                 if event_name not in event_value_mapping:
                     continue
                 relative_timestamps = events[event_name]
-                if isinstance(relative_timestamps, float):
+                if not isinstance(relative_timestamps, list):
                     relative_timestamps = [relative_timestamps]
                 event_type = event_types.event_name[:].index(event_types_metadata[event_name]["name"])
                 for timestamp in relative_timestamps:
@@ -538,6 +538,9 @@ class Mah2024BpodInterface(BaseDataInterface):
 
         for task_argument_name in task_arguments_for_this_session:
             if task_argument_name in arguments_to_exclude:
+                continue
+            if task_argument_name not in task_arguments_metadata:
+                warn(f"Task argument '{task_argument_name}' not in metadata. Skipping.")
                 continue
             task_argument_values = np.array([trial_settings["GUI"][task_argument_name] for trial_settings in trials_settings])
             task_argument_type = task_arguments_metadata[task_argument_name]["expression_type"]
