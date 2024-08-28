@@ -1,1 +1,2 @@
 from .mah_2024_bpodinterface import Mah2024BpodInterface
+from .mah_2024_processedbehaviorinterface import Mah2024ProcessedBehaviorInterface

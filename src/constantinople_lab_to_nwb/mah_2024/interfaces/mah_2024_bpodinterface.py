@@ -114,19 +114,19 @@ class Mah2024BpodInterface(BaseDataInterface):
                 output_type="numeric",
             ),
             DelayToReward=dict(
-                name="delay_to_reward",
+                name="reward_delay",
                 description="The delay in seconds from the end of NoseInCenter to the reward port. Drawn from exponential distribution with mean = 2.5 seconds.",
                 expression_type="double",
                 output_type="numeric",
             ),
             TargetDelayToReward=dict(
-                name="target_delay_to_reward",
+                name="target_reward_delay",
                 description="The target delay in seconds from the end of NoseInCenter to the reward port.",
                 expression_type="double",
                 output_type="numeric",
             ),
             DTRincrement=dict(
-                name="time_increment_for_delay_to_reward",
+                name="time_increment_for_reward_delay",
                 description="The time increment during monotonic increase of reward delay.",
                 expression_type="double",
                 output_type="numeric",
