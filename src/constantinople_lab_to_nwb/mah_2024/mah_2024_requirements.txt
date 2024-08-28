@@ -1,1 +1,1 @@
-ndx-structured-behavior @ git+https://github.com/rly/ndx-structured-behavior.git@main
+ndx-structured-behavior @ git+https://github.com/catalystneuro/ndx-structured-behavior.git@make_task_program_and_schema_optional
