@@ -125,11 +125,11 @@ Behavior:
       output_type: numeric
     Block:
       name: block_type
-      description: The block type (High, Low or Test). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. Test blocks are mixed blocks.
+      description: The block type (High, Low or Mixed). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. The mixed blocks offered all volumes.
       expression_type: string
       output_type: string
     BlockLengthTest:
-      name: num_trials_in_test_blocks
+      name: num_trials_in_mixed_blocks
       description: The number of trials in each mixed blocks.
       expression_type: integer
       output_type: numeric

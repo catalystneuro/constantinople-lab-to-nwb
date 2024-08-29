@@ -47,6 +47,7 @@ class Mah2024BpodInterface(BaseDataInterface):
         self.default_struct_name = default_struct_name
         self.file_path = file_path
         self._bpod_struct = self._read_file()
+        self._block_name_mapping = {1: "Mixed", 2: "High", 3: "Low"}
         super().__init__(file_path=file_path, verbose=verbose)
 
     def get_metadata(self) -> DeepDict:
@@ -139,13 +140,13 @@ class Mah2024BpodInterface(BaseDataInterface):
             ),
             Block=dict(
                 name="block_type",
-                description="The block type (High, Low or Test).",
+                description="The block type (High, Low or Mixed).",
                 expression_type="string",
                 output_type="string",
             ),
             BlockLengthTest=dict(
-                name="num_trials_in_test_blocks",
-                description="The number of trials in test blocks.",
+                name="num_trials_in_mixed_blocks",
+                description="The number of trials in mixed blocks.",
                 expression_type="integer",
                 output_type="numeric",
             ),
@@ -434,8 +435,7 @@ class Mah2024BpodInterface(BaseDataInterface):
             if expression_type == "boolean":
                 task_argument_value = bool(task_argument_value)
             if task_argument_name == "Block":
-                block_name_mapping = {1: "Test", 2: "High", 3: "Low"}
-                task_argument_value = block_name_mapping[task_argument_value]
+                task_argument_value = self._block_name_mapping[task_argument_value]
 
             task_arguments.add_row(
                 argument_name=task_arguments_metadata[task_argument_name]["name"],
@@ -547,8 +547,7 @@ class Mah2024BpodInterface(BaseDataInterface):
             if task_argument_type == "boolean":
                 task_argument_values = task_argument_values.astype(bool)
             elif task_argument_name == "Block":
-                block_name_mapping = {1: "Test", 2: "High", 3: "Low"}
-                task_argument_values = np.array([block_name_mapping[block] for block in task_argument_values])
+                task_argument_values = np.array([self._block_name_mapping[block] for block in task_argument_values])
 
             trials.add_column(
                 name=task_arguments_metadata[task_argument_name]["name"],
