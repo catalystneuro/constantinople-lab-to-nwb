@@ -105,7 +105,7 @@ if __name__ == "__main__":
         rpokedur="duration_of_right_pokes",
         cpokedur="duration_of_center_pokes",
         rt="reaction_time",
-        slrt="short_latency_reaction_time",
+        slrt="side_poke_reaction_time", # side led on = side poke
         ITI="inter_trial_interval",
     )
     # The column descriptions are used to add descriptions to the columns in the processed data. (optional)
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         rpokedur="The duration of right pokes for each trial in seconds.",
         cpokedur="The duration of center pokes for each trial in seconds.",
         rt="The reaction time in seconds.",
-        slrt="The short-latency reaction time in seconds.",
+        slrt="The side poke reaction time in seconds.",
         ITI="The time to initiate trial in seconds (the time between the end of the consummatory period and the time to initiate the next trial).",
         wait_time_unthresholded="The wait time for the subject for each trial in seconds without removing outliers.",
         wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
