@@ -44,6 +44,26 @@ def sessions_to_nwb(
         column_descriptions: dict = None,
         overwrite: bool = False,
 ):
+    """
+    Convert all sessions to NWB format.
+    The number of sessions to convert is determined by the processed behavior files.
+    Each processed behavior file contains data for multiple days, the 'date' key is used to identify the sessions in the raw Bpod output.
+
+    Parameters
+    ----------
+    raw_behavior_folder_path: str or Path
+        The path to the folder containing the raw Bpod output files.
+    processed_behavior_folder_path: str or Path
+        The path to the folder containing the processed behavior files.
+    nwbfile_folder_path: str or Path
+        The path to the folder where the NWB files will be saved.
+    column_name_mapping: dict, optional
+        Dictionary to map the column names in the processed behavior data to more descriptive column names.
+    column_descriptions: dict, optional
+        Dictionary to add descriptions to the columns in the processed behavior data.
+    overwrite
+        Whether to overwrite existing NWB files.
+    """
     if not nwbfile_folder_path.exists():
         os.makedirs(nwbfile_folder_path, exist_ok=True)
 
