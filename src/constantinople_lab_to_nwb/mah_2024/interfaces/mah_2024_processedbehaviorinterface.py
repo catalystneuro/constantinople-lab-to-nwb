@@ -97,7 +97,9 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
             if column in dataframe.columns:
                 dataframe[column] = dataframe[column].astype(bool)
 
-        columns_to_add = column_name_mapping.keys() if column_name_mapping is not None else dataframe.columns
+        columns_to_add = dataframe.columns
+        if column_name_mapping is not None:
+            columns_to_add = [column for column in column_name_mapping.keys() if column in dataframe.columns]
 
         trials = nwbfile.trials
         if trials is None:
