@@ -49,7 +49,7 @@ def get_subject_metadata_from_rat_info_folder(
             )
             vendor = filtered_rat_registry["vendor"].values[0]
             if vendor:
-                subject_metadata.update(vendor=f"Vendor: {vendor}")
+                subject_metadata.update(description=f"Vendor: {vendor}")
 
     mass_registry_file_path = folder_path / "Mass_registry.mat"
     if mass_registry_file_path.exists():
@@ -58,10 +58,10 @@ def get_subject_metadata_from_rat_info_folder(
 
         filtered_mass_registry = mass_registry[(mass_registry["rat"] == subject_id) & (mass_registry["date"] == date)]
         if not filtered_mass_registry.empty:
-            weight_g = filtered_mass_registry["mass"].values[0]  # in grams
+            weight_g = filtered_mass_registry["mass"].astype(int).values[0]  # in grams
             # convert mass to kg
             weight_kg = weight_g / 1000
-            subject_metadata.update(weight=weight_kg)
+            subject_metadata.update(weight=str(weight_kg))
 
     return subject_metadata
 
