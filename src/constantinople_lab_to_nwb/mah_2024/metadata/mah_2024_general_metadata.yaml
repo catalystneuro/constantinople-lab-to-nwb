@@ -4,31 +4,31 @@ NWBFile:
     - https://doi.org/10.5281/zenodo.10031483
   experiment_description: |
     The value of the environment determines animals’ motivational states and sets expectations for error-based learning.
-    How are values computed? Reinforcement learning systems can store or cache values of states or actions that are 
+    How are values computed? Reinforcement learning systems can store or cache values of states or actions that are
     learned from experience, or they can compute values using a model of the environment to simulate possible futures.
-    These value computations have distinct trade-offs, and a central question is how neural systems decide which 
-    computations to use or whether/how to combine them. Here we show that rats use distinct value computations for 
-    sequential decisions within single trials. We used high-throughput training to collect statistically powerful 
+    These value computations have distinct trade-offs, and a central question is how neural systems decide which
+    computations to use or whether/how to combine them. Here we show that rats use distinct value computations for
+    sequential decisions within single trials. We used high-throughput training to collect statistically powerful
     datasets from 291 rats performing a temporal wagering task with hidden reward states. Rats adjusted how quickly they
-    initiated trials and how long they waited for rewards across states, balancing effort and time costs against 
+    initiated trials and how long they waited for rewards across states, balancing effort and time costs against
     expected rewards. Statistical modeling revealed that animals computed the value of the environment differently when
     initiating trials versus when deciding how long to wait for rewards, even though these decisions were only seconds
-    apart. Moreover, value estimates interacted via a dynamic learning rate. Our results reveal how distinct value 
-    computations interact on rapid timescales, and demonstrate the power of using high-throughput training to 
+    apart. Moreover, value estimates interacted via a dynamic learning rate. Our results reveal how distinct value
+    computations interact on rapid timescales, and demonstrate the power of using high-throughput training to
     understand rich, cognitive behaviors.
   session_description:
-    We developed a temporal wagering task for rats, in which they were offered one of several water rewards on each 
-    trial, the volume of which (5, 10, 20, 40, 80μL) was indicated by a tone. The reward was assigned randomly to one 
-    of two ports, indicated by an LED. The rat could wait for an unpredictable delay to obtain the reward, or at any 
-    time could terminate the trial by poking in the other port (opt-out). Wait times were defined as how long rats 
-    waited before opting out. Trial initiation times were defined as the time from opting out or consuming reward to 
-    initiating a new trial. Reward delays were drawn from an exponential distribution, and on 15–25 percent of trials, 
+    We developed a temporal wagering task for rats, in which they were offered one of several water rewards on each
+    trial, the volume of which (5, 10, 20, 40, 80μL) was indicated by a tone. The reward was assigned randomly to one
+    of two ports, indicated by an LED. The rat could wait for an unpredictable delay to obtain the reward, or at any
+    time could terminate the trial by poking in the other port (opt-out). Wait times were defined as how long rats
+    waited before opting out. Trial initiation times were defined as the time from opting out or consuming reward to
+    initiating a new trial. Reward delays were drawn from an exponential distribution, and on 15–25 percent of trials,
     rewards were withheld to force rats to opt-out, providing a continuous behavioral readout of subjective value.
     We used a high-throughput facility to train 291 rats using computerized, semi-automated procedures.
-    The task contained latent structure; rats experienced blocks of 40 completed trials (hidden states) in which they 
-    were presented with low (5, 10, or 20μL) or high (20, 40, or 80μL) rewards. These were interleaved with “mixed" 
-    blocks which offered all rewards. 20μL was present in all blocks, so comparing behavior on trials 
-    offering this reward revealed contextual effects (i.e., effects of hidden states). The hidden states differed in 
+    The task contained latent structure; rats experienced blocks of 40 completed trials (hidden states) in which they
+    were presented with low (5, 10, or 20μL) or high (20, 40, or 80μL) rewards. These were interleaved with “mixed"
+    blocks which offered all rewards. 20μL was present in all blocks, so comparing behavior on trials
+    offering this reward revealed contextual effects (i.e., effects of hidden states). The hidden states differed in
     their average reward and therefore in their opportunity costs, or what the rat might miss out on by continuing to wait.
   institution: NYU Center for Neural Science
   lab: Constantinople
@@ -36,5 +36,5 @@ NWBFile:
     - Mah, Andrew
 Subject:
   species: Rattus norvegicus
-  age: P6M/P24M  # in ISO 8601
-  sex: U  # TODO: update for each subject
+  # age: in ISO 8601 format, updated automatically for each subject
+  # sex: One of M, F, U, or O, updated automatically for each subject
