@@ -165,4 +165,4 @@ Example task arguments:
 
 The following UML diagram shows the mapping of the raw Bpod output to NWB.
 
-![nwb mapping](mah_2025_uml.png)
+![nwb mapping](mah_2024_uml.png)
