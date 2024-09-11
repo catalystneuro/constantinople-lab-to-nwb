@@ -79,8 +79,6 @@ def sessions_to_nwb(
     ]
 
     for subject_id, processed_behavior_file_path in zip(subject_ids, processed_mat_files):
-        if subject_id != "J076":
-            continue
         dates_from_mat = _get_sessions_to_convert_from_mat(file_path=processed_behavior_file_path)
 
         for date_from_mat in dates_from_mat:
@@ -177,7 +175,7 @@ if __name__ == "__main__":
 
     nwbfile_folder_path = Path("/Users/weian/data/001169")
 
-    overwrite = True
+    overwrite = False
 
     sessions_to_nwb(
         raw_behavior_folder_path=raw_behavior_folder_path,
