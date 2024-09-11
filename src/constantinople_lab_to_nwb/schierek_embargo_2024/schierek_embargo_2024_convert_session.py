@@ -25,6 +25,8 @@ def session_to_nwb(
     ----------
     openephys_recording_folder_path : str or Path
         The path to the OpenEphys recording folder.
+    spike_sorting_folder_path : str or Path
+        The path to the Phy sorting folder.
     nwbfile_path : str or Path
         The path to the NWB file to write.
     stub_test : bool, default: False
