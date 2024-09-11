@@ -97,7 +97,10 @@ def sessions_to_nwb(
             raw_behavior_file_path = raw_behavior_file_paths[0]
 
             session_id = raw_behavior_file_path.stem.split("_", maxsplit=1)[1].replace("_", "-")
-            nwbfile_path = nwbfile_folder_path / f"sub-{subject_id}_ses-{session_id}.nwb"
+            subject_nwb_folder_path = nwbfile_folder_path / f"sub-{subject_id}"
+            if not subject_nwb_folder_path.exists():
+                os.makedirs(subject_nwb_folder_path, exist_ok=True)
+            nwbfile_path = subject_nwb_folder_path / f"sub-{subject_id}_ses-{session_id}.nwb"
 
             if nwbfile_path.exists() and not overwrite:
                 print(f"Skipping existing NWB file: {nwbfile_path}")
@@ -172,7 +175,7 @@ if __name__ == "__main__":
         wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
     )
 
-    nwbfile_folder_path = Path("/Volumes/T9/Constantinople/nwbfiles")
+    nwbfile_folder_path = Path("/Users/weian/data/001169")
 
     overwrite = True
 
