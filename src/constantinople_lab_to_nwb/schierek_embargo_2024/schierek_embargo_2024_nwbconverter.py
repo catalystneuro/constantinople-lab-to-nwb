@@ -1,8 +1,10 @@
 """Primary NWBConverter class for this dataset."""
+
 from pathlib import Path
 from typing import Optional, Dict, List
 from warnings import warn
 
+import numpy as np
 from neuroconv import NWBConverter
 from neuroconv.datainterfaces import (
     OpenEphysRecordingInterface,
@@ -19,14 +21,14 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
     data_interface_classes = dict(
         RecordingAP=OpenEphysRecordingInterface,
         RecordingLFP=OpenEphysRecordingInterface,
-        Sorting=PhySortingInterface,
+        PhySorting=PhySortingInterface,
     )
 
     def _set_probe_properties_for_recording_interface(
-            self,
-            probe: Probe,
-            properties_to_add: List[str],
-            recording_interface: str,
+        self,
+        probe: Probe,
+        properties_to_add: List[str],
+        recording_interface: str,
     ):
         """
         Set the probe properties for the recording interface.
@@ -52,11 +54,11 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
                     warn(f"Property '{property_name}' not found in probe contact vector.", UserWarning)
 
     def __init__(
-            self,
-            source_data: Dict[str, dict],
-            probe_group_file_path: Optional[FilePathType] = None,
-            probe_properties: Optional[List[str]] = None,
-            verbose: bool = True,
+        self,
+        source_data: Dict[str, dict],
+        probe_group_file_path: Optional[FilePathType] = None,
+        probe_properties: Optional[List[str]] = None,
+        verbose: bool = True,
     ):
 
         super().__init__(source_data=source_data, verbose=verbose)
@@ -72,3 +74,10 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
                         properties_to_add=probe_properties,
                         recording_interface=recording_interface_name,
                     )
+
+        # TODO: remove once issue is fixed on NeuroConv
+        # https://github.com/catalystneuro/neuroconv/pull/1042#discussion_r1754409919
+        quality = self.data_interface_objects["PhySorting"].sorting_extractor.get_property("quality")
+        if quality is not None:
+            quality = ["" if q != q else q for q in quality]
+            self.data_interface_objects["PhySorting"].sorting_extractor.set_property("quality", quality)

@@ -1,2 +1,3 @@
-git+https://github.com/catalystneuro/neuroconv.git@main
-neuroconv[openephys]
+git+https://github.com/catalystneuro/neuroconv.git@compound_object # pin until PR is merged
+neuroconv[openephys,phy]
+probeinterface

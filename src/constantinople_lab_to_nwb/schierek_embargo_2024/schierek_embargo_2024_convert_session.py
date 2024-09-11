@@ -1,20 +1,22 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
+
 import os
 from pathlib import Path
 from typing import Union
 
 from dateutil import tz
-from neuroconv.datainterfaces import OpenEphysBinaryRecordingInterface
+from neuroconv.datainterfaces import OpenEphysRecordingInterface
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
 from constantinople_lab_to_nwb.schierek_embargo_2024 import SchierekEmbargo2024NWBConverter
 
 
 def session_to_nwb(
-        openephys_recording_folder_path: Union[str, Path],
-        nwbfile_path: Union[str, Path],
-        stub_test: bool = False,
-        overwrite: bool = False,
+    openephys_recording_folder_path: Union[str, Path],
+    spike_sorting_folder_path: Union[str, Path],
+    nwbfile_path: Union[str, Path],
+    stub_test: bool = False,
+    overwrite: bool = False,
 ):
     """
     Convert a session of data to NWB format.
@@ -30,11 +32,13 @@ def session_to_nwb(
     overwrite : bool, default: False
         Whether to overwrite an existing NWB file.
     """
+    recording_folder_path = Path(openephys_recording_folder_path)
+
     source_data = dict()
     conversion_options = dict()
 
     # Add Recording
-    stream_names = OpenEphysBinaryRecordingInterface.get_stream_names(folder_path=openephys_recording_folder_path)
+    stream_names = OpenEphysRecordingInterface.get_stream_names(folder_path=openephys_recording_folder_path)
     stream_name_raw = [stream_name for stream_name in stream_names if "AP" in stream_name][0]
     stream_name_lfp = [stream_name for stream_name in stream_names if "LFP" in stream_name][0]
 
@@ -52,8 +56,8 @@ def session_to_nwb(
     )
 
     # Add Sorting
-    # source_data.update(dict(Sorting=dict()))
-    # conversion_options.update(dict(Sorting=dict()))
+    source_data.update(dict(PhySorting=dict(folder_path=spike_sorting_folder_path)))
+    conversion_options.update(dict(PhySorting=dict(stub_test=stub_test)))
 
     # Add Behavior
     # source_data.update(dict(Behavior=dict()))
@@ -105,8 +109,13 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
-    recording_folder_path = Path("/Volumes/t7-ssd/GCP/Constantinople/J076_2023-12-06_13-24-28/Record Node 117")
-    nwbfile_path = Path("/Volumes/t7-ssd/GCP/Constantinople/nwbfiles/J076_2023-12-06_13-24-28.nwb")
+    openephys_recording_folder_path = Path(
+        "/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12_14-52-04/Record Node 117"
+    )
+    phy_sorting_folder_path = (
+        openephys_recording_folder_path / "experiment1/recording1/continuous/Neuropix-PXI-119.ProbeA-AP"
+    )
+    nwbfile_path = Path("/Volumes/T9/Constantinople/nwbfiles/J076_2023-12-12_14-52-04.nwb")
     if not nwbfile_path.parent.exists():
         os.makedirs(nwbfile_path.parent, exist_ok=True)
 
@@ -114,7 +123,8 @@ if __name__ == "__main__":
     overwrite = True
 
     session_to_nwb(
-        openephys_recording_folder_path=recording_folder_path,
+        openephys_recording_folder_path=openephys_recording_folder_path,
+        spike_sorting_folder_path=phy_sorting_folder_path,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
         overwrite=overwrite,
