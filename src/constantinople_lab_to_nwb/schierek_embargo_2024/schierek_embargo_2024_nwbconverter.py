@@ -1,6 +1,5 @@
 """Primary NWBConverter class for this dataset."""
 
-from pathlib import Path
 from typing import Optional, Dict, List
 from warnings import warn
 
@@ -74,10 +73,3 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
                         properties_to_add=probe_properties,
                         recording_interface=recording_interface_name,
                     )
-
-        # TODO: remove once issue is fixed on NeuroConv
-        # https://github.com/catalystneuro/neuroconv/pull/1042#discussion_r1754409919
-        quality = self.data_interface_objects["PhySorting"].sorting_extractor.get_property("quality")
-        if quality is not None:
-            quality = ["" if q != q else q for q in quality]
-            self.data_interface_objects["PhySorting"].sorting_extractor.set_property("quality", quality)
