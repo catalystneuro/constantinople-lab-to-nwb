@@ -19,12 +19,3 @@ class SchierekEmbargo2024SortingInterface(BaseSortingExtractorInterface):
             Allows verbosity.
         """
         super().__init__(file_path=file_path, sampling_frequency=sampling_frequency, verbose=verbose)
-
-    def get_metadata(self) -> dict:
-        metadata = super().get_metadata()
-        metadata["Ecephys"]["UnitProperties"] = [
-            dict(name="cluster_id", description="The cluster ID assigned by Phy."),
-            dict(name="ch", description="The channel on the neuropixels probe that the cell was recorded on."),
-        ]
-
-        return metadata

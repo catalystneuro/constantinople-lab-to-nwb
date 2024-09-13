@@ -52,7 +52,6 @@ class SchierekEmbargo2024SortingExtractor(BaseSorting):
         self.set_property(key="ch", values=channel_ids)
 
         electrode_properties_mapping = dict(
-            rec_channel="rec_channel",
             channel_depth="channel_depth_um",
             location="brain_area",
             umDistFromL1="distance_from_L1_um",

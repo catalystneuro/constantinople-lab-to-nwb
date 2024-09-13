@@ -68,10 +68,9 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
         electrode_properties = sorting_extractor._electrode_properties
 
         # TODO confirm channel indices match to channel info from sorting
-        channel_ids = np.array(electrode_properties["rec_channel"]) - 1  # shift to 0-based indexing
+        channel_ids = sorting_extractor.get_property("ch")
         channel_ids = list(channel_ids)
-        properties_to_add = [property_name for property_name in electrode_properties if property_name != "rec_channel"]
-        for property_name in properties_to_add:
+        for property_name in electrode_properties:
             property_values = electrode_properties[property_name]
             missing_value = "unknown" if property_name == "brain_area" else np.nan
             channel_indices_from_recording = recording_extractor.ids_to_indices()
