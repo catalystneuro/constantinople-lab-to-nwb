@@ -130,6 +130,7 @@ def session_to_nwb(
     converter = Mah2024NWBConverter(source_data=source_data, verbose=verbose)
 
     subject_id, session_id = Path(raw_behavior_file_path).stem.split("_", maxsplit=1)
+    protocol = session_id.split("_")[0]
     session_id = session_id.replace("_", "-")
 
     # Add datetime to conversion
@@ -139,6 +140,7 @@ def session_to_nwb(
     metadata["NWBFile"].update(
         session_start_time=session_start_time.replace(tzinfo=tzinfo),
         session_id=session_id,
+        protocol=protocol,
     )
 
     # Update default metadata with the editable in the corresponding yaml file
