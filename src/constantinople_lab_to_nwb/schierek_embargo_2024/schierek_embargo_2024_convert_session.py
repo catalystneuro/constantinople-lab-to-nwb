@@ -7,6 +7,7 @@ from typing import Union
 from dateutil import tz
 from neuroconv.datainterfaces import OpenEphysRecordingInterface
 from neuroconv.utils import load_dict_from_file, dict_deep_update
+from spikeinterface.extractors import OpenEphysBinaryRecordingExtractor
 
 from constantinople_lab_to_nwb.schierek_embargo_2024 import SchierekEmbargo2024NWBConverter
 
@@ -66,8 +67,17 @@ def session_to_nwb(
 
     # Add processed sorting output
     if processed_spike_sorting_file_path is not None:
+        # Retrieve the sampling frequency from the raw data
+        recording_extractor = OpenEphysBinaryRecordingExtractor(
+            folder_path=openephys_recording_folder_path, stream_name=stream_name_raw
+        )
+        sampling_frequency = recording_extractor.get_sampling_frequency()
         source_data.update(
-            dict(ProcessedSorting=dict(file_path=processed_spike_sorting_file_path, sampling_frequency=30000.0))
+            dict(
+                ProcessedSorting=dict(
+                    file_path=processed_spike_sorting_file_path, sampling_frequency=sampling_frequency
+                )
+            )
         )
         conversion_options.update(dict(ProcessedSorting=dict(write_as="processing", stub_test=False)))
 
