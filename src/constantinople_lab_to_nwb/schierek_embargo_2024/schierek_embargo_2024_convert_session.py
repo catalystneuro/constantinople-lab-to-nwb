@@ -14,6 +14,7 @@ from constantinople_lab_to_nwb.schierek_embargo_2024 import SchierekEmbargo2024N
 def session_to_nwb(
     openephys_recording_folder_path: Union[str, Path],
     spike_sorting_folder_path: Union[str, Path],
+    processed_spike_sorting_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
     overwrite: bool = False,
@@ -27,6 +28,8 @@ def session_to_nwb(
         The path to the OpenEphys recording folder.
     spike_sorting_folder_path : str or Path
         The path to the Phy sorting folder.
+    processed_spike_sorting_file_path : str or Path
+        The path to the processed spike sorting file (.mat).
     nwbfile_path : str or Path
         The path to the NWB file to write.
     stub_test : bool, default: False
@@ -59,15 +62,20 @@ def session_to_nwb(
 
     # Add Sorting
     source_data.update(dict(PhySorting=dict(folder_path=spike_sorting_folder_path)))
-    conversion_options.update(dict(PhySorting=dict(stub_test=stub_test)))
+    conversion_options.update(dict(PhySorting=dict(stub_test=False)))
+
+    # Add processed sorting output
+    if processed_spike_sorting_file_path is not None:
+        source_data.update(
+            dict(ProcessedSorting=dict(file_path=processed_spike_sorting_file_path, sampling_frequency=30000.0))
+        )
+        conversion_options.update(dict(ProcessedSorting=dict(write_as="processing", stub_test=False)))
 
     # Add Behavior
     # source_data.update(dict(Behavior=dict()))
     # conversion_options.update(dict(Behavior=dict()))
 
-    openephys_recording_folder_path = Path(openephys_recording_folder_path)
-    recording_root_folder_path = openephys_recording_folder_path.parent
-    recording_folder_name = recording_root_folder_path.stem
+    recording_folder_name = recording_folder_path.stem
     subject_id, session_id = recording_folder_name.split("_", maxsplit=1)
 
     converter_kwargs = dict(source_data=source_data)
@@ -111,12 +119,11 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
-    openephys_recording_folder_path = Path(
-        "/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12_14-52-04/Record Node 117"
-    )
+    openephys_recording_folder_path = Path("/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12_14-52-04/")
     phy_sorting_folder_path = (
-        openephys_recording_folder_path / "experiment1/recording1/continuous/Neuropix-PXI-119.ProbeA-AP"
+        openephys_recording_folder_path / "Record Node 117/experiment1/recording1/continuous/Neuropix-PXI-119.ProbeA-AP"
     )
+    processed_sorting_file_path = Path("/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12.mat")
     nwbfile_path = Path("/Volumes/T9/Constantinople/nwbfiles/J076_2023-12-12_14-52-04.nwb")
     if not nwbfile_path.parent.exists():
         os.makedirs(nwbfile_path.parent, exist_ok=True)
@@ -127,6 +134,7 @@ if __name__ == "__main__":
     session_to_nwb(
         openephys_recording_folder_path=openephys_recording_folder_path,
         spike_sorting_folder_path=phy_sorting_folder_path,
+        processed_spike_sorting_file_path=processed_sorting_file_path,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
         overwrite=overwrite,
