@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union, Optional
+from warnings import warn
 
 import pandas as pd
 from dateutil import tz
@@ -40,13 +41,16 @@ def get_subject_metadata_from_rat_info_folder(
         filtered_rat_registry = rat_registry[rat_registry["RatName"] == subject_id]
         if not filtered_rat_registry.empty:
             date_of_birth = filtered_rat_registry["DOB"].values[0]
-            # convert date of birth to datetime with format "yyyy-mm-dd"
-            date_of_birth = pd.to_datetime(date_of_birth, format="%Y-%m-%d")
-            sex = filtered_rat_registry["sex"].values[0]
-            subject_metadata.update(
-                date_of_birth=date_of_birth,
-                sex=sex,
-            )
+            if date_of_birth:
+                # convert date of birth to datetime with format "yyyy-mm-dd"
+                date_of_birth = pd.to_datetime(date_of_birth, format="%Y-%m-%d")
+                subject_metadata.update(date_of_birth=date_of_birth)
+            else:
+                # TODO: what to do if date of birth is missing?
+                warn("Date of birth is missing. We recommend adding this information to the rat info files.")
+                # Using age range specified in the manuscript
+                subject_metadata.update(age="P6M/P24M")
+            subject_metadata.update(sex=filtered_rat_registry["sex"].values[0])
             vendor = filtered_rat_registry["vendor"].values[0]
             if vendor:
                 subject_metadata.update(description=f"Vendor: {vendor}")

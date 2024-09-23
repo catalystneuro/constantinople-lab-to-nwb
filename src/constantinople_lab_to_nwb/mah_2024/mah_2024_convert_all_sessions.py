@@ -3,11 +3,29 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union, List
 
+from nwbinspector import inspect_all, format_messages, save_report
 from pymatreader import read_mat
+from tqdm import tqdm
 
 from constantinople_lab_to_nwb.mah_2024.mah_2024_convert_session import (
     session_to_nwb,
     get_subject_metadata_from_rat_info_folder,
+)
+
+import warnings
+
+# Suppress specific UserWarning messages
+warnings.filterwarnings(
+    "ignore",
+    message="The linked table for DynamicTableRegion 'action_type' does not share an ancestor with the DynamicTableRegion.",
+)
+warnings.filterwarnings(
+    "ignore",
+    message="The linked table for DynamicTableRegion 'event_type' does not share an ancestor with the DynamicTableRegion.",
+)
+warnings.filterwarnings(
+    "ignore",
+    message="The linked table for DynamicTableRegion 'state_type' does not share an ancestor with the DynamicTableRegion.",
 )
 
 
@@ -76,18 +94,48 @@ def sessions_to_nwb(
     processed_mat_files = list(processed_behavior_folder_path.glob("*.mat"))
     subject_ids = [
         processed_behavior_file_path.stem.split("_")[-1] for processed_behavior_file_path in processed_mat_files
-    ]
+    ][:10]
+    sessions_to_convert_per_subject = {
+        subject_id: _get_sessions_to_convert_from_mat(file_path=processed_behavior_file_path)
+        for subject_id, processed_behavior_file_path in zip(subject_ids, processed_mat_files)
+    }
 
     for subject_id, processed_behavior_file_path in zip(subject_ids, processed_mat_files):
-        dates_from_mat = _get_sessions_to_convert_from_mat(file_path=processed_behavior_file_path)
+        dates_from_mat = sessions_to_convert_per_subject[subject_id]
+        num_sessions_per_subject = len(dates_from_mat)
+        progress_bar = tqdm(
+            dates_from_mat,
+            desc=f"Converting subject '{subject_id}' with {num_sessions_per_subject} sessions to NWB ...",
+            position=0,
+            total=num_sessions_per_subject,
+            dynamic_ncols=True,
+        )
 
-        for date_from_mat in dates_from_mat:
+        for date_from_mat in progress_bar:
             date_obj = datetime.strptime(date_from_mat, "%d-%b-%Y")
             formatted_date_str = date_obj.strftime("%Y%m%d")
 
             raw_behavior_file_paths = list(
                 (raw_behavior_folder_path / subject_id / "DataFiles").glob(f"*{formatted_date_str}*.mat")
             )
+            if len(raw_behavior_file_paths) != 1:
+                # TODO: figure out how to match duplicate dates
+                # ntrials from processed then read the raw file and check if the number of trials match
+                processed_behavior_data = read_mat(str(processed_behavior_file_path))
+
+                date_index = list(dates_from_mat).index(date_from_mat)
+                num_trials = processed_behavior_data["A"]["ntrials"][date_index]
+                for behavior_file_path in raw_behavior_file_paths:
+                    try:
+                        raw_behavior_data = read_mat(str(behavior_file_path))
+                    except ValueError as e:
+                        print(f"Error reading file: {behavior_file_path} , {e}")
+                        continue
+                    num_trials_here = raw_behavior_data["SessionData"]["nTrials"]
+                    if num_trials_here == num_trials:
+                        raw_behavior_file_paths = [behavior_file_path]
+                        break
+
             if len(raw_behavior_file_paths) != 1:
                 raise ValueError(
                     f"Expected to find 1 raw behavior file for date {formatted_date_str}, found {len(raw_behavior_file_paths)}."
