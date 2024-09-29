@@ -6,7 +6,6 @@ import numpy as np
 from ndx_fiber_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseTemporalAlignmentInterface
 from neuroconv.tools import get_module
-from neuroconv.utils import load_dict_from_file, dict_deep_update
 from pynwb import NWBFile
 
 from constantinople_lab_to_nwb.fiber_photometry.utils import add_fiber_photometry_table, add_fiber_photometry_devices
@@ -130,23 +129,3 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
                 description="Contains the processed fiber photometry data.",
             )
             ophys_module.add(fiber_photometry_response_series)
-
-
-interface = DoricFiberPhotometryInterface(
-    file_path="/Volumes/T9/Constantinople/Preprocessed_data/J100/Raw/J100_rDAgAChDLSDMS_20240819_HJJ_0001.doric",
-    stream_name="/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn/",
-)
-
-metadata = interface.get_metadata()
-metadata["NWBFile"]["session_start_time"] = "2024-08-19T00:00:00"
-
-# Update default metadata with the editable in the corresponding yaml file
-editable_metadata_path = Path(__file__).parent.parent / "metadata" / "fiber_photometry_metadata.yaml"
-editable_metadata = load_dict_from_file(editable_metadata_path)
-metadata = dict_deep_update(metadata, editable_metadata)
-
-interface.run_conversion(
-    nwbfile_path="/Volumes/T9/Constantinople/nwbfiles/test.nwb",
-    metadata=metadata,
-    fiber_photometry_series_name="fiber_photometry_response_series_green",
-)
