@@ -50,7 +50,7 @@ def session_to_nwb(
         dict(
             FiberPhotometry=dict(
                 file_path=raw_fiber_photometry_file_path,
-                stream_name="/DataAcquisition/FPConsole/Signals/Series0001/AIN01xAOUT01-LockIn",
+                stream_name="/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn",
             )
         )
     )
