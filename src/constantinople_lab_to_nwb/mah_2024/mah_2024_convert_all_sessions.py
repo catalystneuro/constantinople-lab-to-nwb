@@ -31,6 +31,7 @@ warnings.filterwarnings(
 
 def _get_sessions_to_convert_from_mat(
     file_path: Union[str, Path],
+    bpod_folder_path: Union[str, Path],
     default_struct_name: str = "A",
 ) -> List[str]:
     """
@@ -54,7 +55,20 @@ def _get_sessions_to_convert_from_mat(
     if "date" not in behavior_data:
         raise ValueError(f"The 'date' key is missing from {file_path}.")
 
-    return behavior_data["date"]
+    dates = behavior_data["date"]
+
+    subject_id = file_path.stem.split("_")[-1]
+    bpod_files_to_convert = []
+    for date in dates:
+        date_obj = datetime.strptime(date, "%d-%b-%Y")
+        formatted_date_str = date_obj.strftime("%Y%m%d")
+
+        raw_behavior_file_paths = list(
+            (bpod_folder_path / subject_id / "DataFiles").glob(f"*{formatted_date_str}*.mat")
+        )
+        bpod_files_to_convert.extend(raw_behavior_file_paths)
+
+    return bpod_files_to_convert
 
 
 def sessions_to_nwb(
@@ -91,57 +105,29 @@ def sessions_to_nwb(
     if not nwbfile_folder_path.exists():
         os.makedirs(nwbfile_folder_path, exist_ok=True)
 
-    processed_mat_files = list(processed_behavior_folder_path.glob("*.mat"))
+    processed_mat_files = list(processed_behavior_folder_path.glob("ratTrial*.mat"))
     subject_ids = [
         processed_behavior_file_path.stem.split("_")[-1] for processed_behavior_file_path in processed_mat_files
     ][:10]
     sessions_to_convert_per_subject = {
-        subject_id: _get_sessions_to_convert_from_mat(file_path=processed_behavior_file_path)
+        subject_id: _get_sessions_to_convert_from_mat(
+            file_path=processed_behavior_file_path, bpod_folder_path=raw_behavior_folder_path
+        )
         for subject_id, processed_behavior_file_path in zip(subject_ids, processed_mat_files)
     }
 
     for subject_id, processed_behavior_file_path in zip(subject_ids, processed_mat_files):
-        dates_from_mat = sessions_to_convert_per_subject[subject_id]
-        num_sessions_per_subject = len(dates_from_mat)
+        raw_bpod_file_paths = sessions_to_convert_per_subject[subject_id]
+        num_sessions_per_subject = len(raw_bpod_file_paths)
         progress_bar = tqdm(
-            dates_from_mat,
+            raw_bpod_file_paths,
             desc=f"Converting subject '{subject_id}' with {num_sessions_per_subject} sessions to NWB ...",
             position=0,
             total=num_sessions_per_subject,
             dynamic_ncols=True,
         )
 
-        for date_from_mat in progress_bar:
-            date_obj = datetime.strptime(date_from_mat, "%d-%b-%Y")
-            formatted_date_str = date_obj.strftime("%Y%m%d")
-
-            raw_behavior_file_paths = list(
-                (raw_behavior_folder_path / subject_id / "DataFiles").glob(f"*{formatted_date_str}*.mat")
-            )
-            if len(raw_behavior_file_paths) != 1:
-                # TODO: figure out how to match duplicate dates
-                # ntrials from processed then read the raw file and check if the number of trials match
-                processed_behavior_data = read_mat(str(processed_behavior_file_path))
-
-                date_index = list(dates_from_mat).index(date_from_mat)
-                num_trials = processed_behavior_data["A"]["ntrials"][date_index]
-                for behavior_file_path in raw_behavior_file_paths:
-                    try:
-                        raw_behavior_data = read_mat(str(behavior_file_path))
-                    except ValueError as e:
-                        print(f"Error reading file: {behavior_file_path} , {e}")
-                        continue
-                    num_trials_here = raw_behavior_data["SessionData"]["nTrials"]
-                    if num_trials_here == num_trials:
-                        raw_behavior_file_paths = [behavior_file_path]
-                        break
-
-            if len(raw_behavior_file_paths) != 1:
-                raise ValueError(
-                    f"Expected to find 1 raw behavior file for date {formatted_date_str}, found {len(raw_behavior_file_paths)}."
-                )
-            raw_behavior_file_path = raw_behavior_file_paths[0]
-
+        for raw_behavior_file_path in progress_bar:
             session_id = raw_behavior_file_path.stem.split("_", maxsplit=1)[1].replace("_", "-")
             subject_nwb_folder_path = nwbfile_folder_path / f"sub-{subject_id}"
             if not subject_nwb_folder_path.exists():
@@ -152,6 +138,8 @@ def sessions_to_nwb(
                 print(f"Skipping existing NWB file: {nwbfile_path}")
                 continue
 
+            date_from_mat = session_id.split("-")[1]
+            date_obj = datetime.strptime(date_from_mat, "%Y%d%M")
             subject_metadata = get_subject_metadata_from_rat_info_folder(
                 folder_path=rat_info_folder_path,
                 subject_id=subject_id,
@@ -161,7 +149,6 @@ def sessions_to_nwb(
             session_to_nwb(
                 raw_behavior_file_path=raw_behavior_file_path,
                 processed_behavior_file_path=processed_behavior_file_path,
-                date=date_from_mat,
                 nwbfile_path=nwbfile_path,
                 column_name_mapping=column_name_mapping,
                 column_descriptions=column_descriptions,
