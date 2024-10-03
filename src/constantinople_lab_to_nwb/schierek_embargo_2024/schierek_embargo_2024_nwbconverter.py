@@ -12,7 +12,13 @@ from neuroconv.datainterfaces import (
 from neuroconv.utils import FilePathType
 from probeinterface import read_probeinterface, Probe
 
-from constantinople_lab_to_nwb.schierek_embargo_2024.interfaces import SchierekEmbargo2024SortingInterface
+# TODO: move to general_interfaces
+from constantinople_lab_to_nwb.mah_2024.interfaces import Mah2024BpodInterface
+
+from constantinople_lab_to_nwb.schierek_embargo_2024.interfaces import (
+    SchierekEmbargo2024SortingInterface,
+    SchierekEmbargo2024ProcessedBehaviorInterface,
+)
 
 
 class SchierekEmbargo2024NWBConverter(NWBConverter):
@@ -23,6 +29,8 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
         RecordingLFP=OpenEphysRecordingInterface,
         PhySorting=PhySortingInterface,
         ProcessedSorting=SchierekEmbargo2024SortingInterface,
+        RawBehavior=Mah2024BpodInterface,
+        ProcessedBehavior=SchierekEmbargo2024ProcessedBehaviorInterface,
     )
 
     def _set_probe_properties_for_recording_interface(
