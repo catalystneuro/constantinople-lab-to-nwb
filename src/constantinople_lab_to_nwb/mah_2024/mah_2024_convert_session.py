@@ -10,41 +10,6 @@ from pymatreader import read_mat
 from constantinople_lab_to_nwb.mah_2024 import Mah2024NWBConverter
 
 
-def get_date_index(bpod_file_path: Union[str, Path], a_struct_file_path: Union[str, Path]) -> int:
-    """
-    Figure out the date index for the processed behavior file.
-
-    Parameters
-    ----------
-    bpod_file_path: Union[str, Path]
-        Path to the raw Bpod output (.mat file).
-    a_struct_file_path: Union[str, Path]
-        Path to the processed behavior data (.mat file).
-
-    Returns
-    -------
-    int
-        The date index for the processed behavior file.
-    """
-    bpod_data = read_mat(str(bpod_file_path))
-    num_trials = bpod_data["SessionData"]["nTrials"]
-    date = bpod_data["SessionData"]["Info"]["SessionDate"]
-
-    a_struct_data = read_mat(str(a_struct_file_path))
-    dates = a_struct_data["A"]["date"]
-    num_trials_per_day = a_struct_data["A"]["ntrials"]
-
-    dates_and_trials = pd.DataFrame(dict(date=dates, num_trials=num_trials_per_day))
-    filtered_dates_and_trials = dates_and_trials[
-        (dates_and_trials["date"] == date) & (dates_and_trials["num_trials"] == num_trials)
-    ]
-
-    if filtered_dates_and_trials.empty:
-        raise ValueError("Could not find the date index in the processed behavior file. This should not happen.")
-
-    return filtered_dates_and_trials.index[0]
-
-
 def get_subject_metadata_from_rat_info_folder(
     folder_path: Union[str, Path],
     subject_id: str,
@@ -108,6 +73,7 @@ def get_subject_metadata_from_rat_info_folder(
 def session_to_nwb(
     raw_behavior_file_path: Union[str, Path],
     processed_behavior_file_path: Union[str, Path],
+    date_index: int,
     nwbfile_path: Union[str, Path],
     column_name_mapping: Optional[dict] = None,
     column_descriptions: Optional[dict] = None,
@@ -160,7 +126,6 @@ def session_to_nwb(
     conversion_options.update(dict(RawBehavior=dict(task_arguments_to_exclude=task_arguments_to_exclude)))
 
     # Add Processed Behavior
-    date_index = get_date_index(bpod_file_path=raw_behavior_file_path, a_struct_file_path=processed_behavior_file_path)
     source_data.update(dict(ProcessedBehavior=dict(file_path=processed_behavior_file_path, date_index=date_index)))
     conversion_options.update(
         dict(ProcessedBehavior=dict(column_name_mapping=column_name_mapping, column_descriptions=column_descriptions))
@@ -212,6 +177,8 @@ if __name__ == "__main__":
     bpod_file_path = Path("/Volumes/T9/Constantinople/raw_Bpod/C005/DataFiles/C005_RWTautowait_20190909_145629.mat")
     # The processed behavior data is stored in a .mat file (contains data for multiple days)
     processed_behavior_file_path = Path("/Volumes/T9/Constantinople/A_Structs/ratTrial_C005.mat")
+    # The row index of the date in the processed behavior file
+    date_index = 0
     # The column name mapping is used to rename the columns in the processed data to more descriptive column names. (optional)
     column_name_mapping = dict(
         hits="is_rewarded",
@@ -275,6 +242,7 @@ if __name__ == "__main__":
     session_to_nwb(
         raw_behavior_file_path=bpod_file_path,
         processed_behavior_file_path=processed_behavior_file_path,
+        date_index=date_index,
         column_name_mapping=column_name_mapping,
         column_descriptions=column_descriptions,
         nwbfile_path=nwbfile_path,
