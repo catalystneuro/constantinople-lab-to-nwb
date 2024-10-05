@@ -3,6 +3,7 @@ from typing import Union, Literal
 
 import h5py
 import numpy as np
+import pandas as pd
 from ndx_fiber_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseTemporalAlignmentInterface
 from neuroconv.tools import get_module
@@ -21,6 +22,7 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
         verbose: bool = True,
     ):
         self._timestamps = None
+        self._time_column_name = "Time"
         super().__init__(file_path=file_path, stream_name=stream_name, verbose=verbose)
 
     def load(self, stream_name: str):
@@ -30,13 +32,13 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
             raise ValueError(f"File '{file_path}' is not a .doric file.")
 
         channel_group = h5py.File(file_path, mode="r")[stream_name]
-        if "Time" not in channel_group.keys():
+        if self._time_column_name not in channel_group.keys():
             raise ValueError(f"Time not found in '{stream_name}'.")
         return channel_group
 
     def get_original_timestamps(self) -> np.ndarray:
         channel_group = self.load(stream_name=self.source_data["stream_name"])
-        return channel_group["Time"][:]
+        return channel_group[self._time_column_name][:]
 
     def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
         timestamps = self._timestamps if self._timestamps is not None else self.get_original_timestamps()
@@ -46,6 +48,18 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
 
     def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
         self._timestamps = np.array(aligned_timestamps)
+
+    def _get_traces(self, stream_name: str, stream_indices: list, stub_test: bool = False):
+        traces_to_add = []
+        data = self.load(stream_name=stream_name)
+        channel_names = list(data.keys())
+        for stream_index in stream_indices:
+            trace = data[channel_names[stream_index]]
+            trace = trace[:100] if stub_test else trace[:]
+            traces_to_add.append(trace)
+
+        traces = np.vstack(traces_to_add).T
+        return traces
 
     def add_to_nwbfile(
         self,
@@ -93,15 +107,7 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
         stream_name = trace_metadata["stream_name"]
         stream_indices = trace_metadata["stream_indices"]
 
-        traces_to_add = []
-        data = self.load(stream_name=stream_name)
-        channel_names = list(data.keys())
-        for stream_index in stream_indices:
-            trace = data[channel_names[stream_index]]
-            trace = trace[:100] if stub_test else trace[:]
-            traces_to_add.append(trace)
-
-        traces = np.vstack(traces_to_add).T
+        traces = self._get_traces(stream_name=stream_name, stream_indices=stream_indices, stub_test=stub_test)
 
         fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
             description=trace_metadata["fiber_photometry_table_region_description"],
@@ -129,3 +135,46 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
                 description="Contains the processed fiber photometry data.",
             )
             ophys_module.add(fiber_photometry_response_series)
+
+
+class DoricCsvFiberPhotometryInterface(DoricFiberPhotometryInterface):
+
+    def __init__(
+        self,
+        file_path: Union[str, Path],
+        stream_name: str,
+        verbose: bool = True,
+    ):
+        super().__init__(file_path=file_path, stream_name=stream_name, verbose=verbose)
+        self._time_column_name = "Time(s)"
+
+    def get_original_timestamps(self) -> np.ndarray:
+        channel_group = self.load(stream_name=self.source_data["stream_name"])
+        return channel_group[self._time_column_name].values
+
+    def load(self, stream_name: str):
+        file_path = Path(self.source_data["file_path"])
+        # check if suffix is .doric
+        if file_path.suffix != ".csv":
+            raise ValueError(f"File '{file_path}' is not a .csv file.")
+
+        df = pd.read_csv(file_path, header=[0, 1])
+        df = df.droplevel(0, axis=1)
+        if self._time_column_name not in df.columns:
+            raise ValueError(f"Time column not found in '{file_path}'.")
+        filtered_columns = [col for col in df.columns if stream_name in col]
+        filtered_columns.append(self._time_column_name)
+        df = df[filtered_columns]
+        return df
+
+    def _get_traces(self, stream_name: str, stream_indices: list, stub_test: bool = False):
+        traces_to_add = []
+        data = self.load(stream_name=stream_name)
+        channel_names = [col for col in data.columns if col != self._time_column_name]
+        for stream_index in stream_indices:
+            trace = data[channel_names[stream_index]]
+            trace = trace[:100] if stub_test else trace
+            traces_to_add.append(trace)
+
+        traces = np.vstack(traces_to_add).T
+        return traces
