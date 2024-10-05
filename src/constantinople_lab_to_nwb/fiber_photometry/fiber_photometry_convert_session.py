@@ -46,11 +46,21 @@ def session_to_nwb(
     session_id = session_id.replace("_", "-")
 
     # Add fiber photometry data
+    file_suffix = raw_fiber_photometry_file_path.suffix
+    if file_suffix == ".doric":
+        raw_stream_name = "/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn"
+    elif file_suffix == ".csv":
+        raw_stream_name = "Raw"
+    else:
+        raise ValueError(
+            f"File '{raw_fiber_photometry_file_path}' extension should be either .doric or .csv and not '{file_suffix}'."
+        )
+
     source_data.update(
         dict(
             FiberPhotometry=dict(
                 file_path=raw_fiber_photometry_file_path,
-                stream_name="/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn",
+                stream_name=raw_stream_name,
             )
         )
     )
