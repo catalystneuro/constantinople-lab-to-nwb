@@ -1,0 +1,2 @@
+ndx-fiber-photometry==0.1.0
+neuroconv[deeplabcut,video]
