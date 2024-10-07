@@ -43,6 +43,8 @@ Behavior:
       name: wait_for_side_poke_during_stimulation
     WaitForSidePoke_afterStim:
       name: wait_for_side_poke_after_stimulation
+    OptoStopSound:
+      name: opto_stop_sound
     PortOut:
       name: port_out
     AnnounceReward:
