@@ -1,0 +1,14 @@
+Stimulus:
+  OptogeneticStimulusSite:
+    - name: optogenetic_stimulus_site
+      description: The site where the optogenetic stimulation was applied.
+      excitation_lambda: 450.0 # Excitation wavelength in nanometers.
+      location: DMS # The brain area where the stimulation was applied.
+  OptogeneticSeries:
+    name: optogenetic_series
+    site: optogenetic_stimulus_site
+    description: Notes on the optogenetic stimulation.
+    duration: 0.5 # Duration of the optogenetic stimulation in seconds.
+    frequency: 40.0 # Frequency of the optogenetic stimulation in Hz.
+    pulse_width: 0.005 # Pulse width of the optogenetic stimulation in seconds.
+    power: 0.01 # Power of the optogenetic stimulation in W.
