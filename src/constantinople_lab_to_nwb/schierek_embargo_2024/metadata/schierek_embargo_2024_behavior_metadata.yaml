@@ -1,29 +1,29 @@
 Behavior:
   TrialsTable:
     description: |
-      LED illumination from the center port indicated that the animal could initiate a trial by poking its nose in that 
+      LED illumination from the center port indicated that the animal could initiate a trial by poking its nose in that
       port - upon trial initiation the center LED turned off. While in the center port, rats needed to maintain center
-      fixation for a duration drawn uniformly from [0.8, 1.2] seconds. During the fixation period, a tone played from 
-      both speakers, the frequency of which indicated the volume of the offered water reward for that trial 
-      [1, 2, 4, 8, 16kHz, indicating 5, 10, 20, 40, 80μL rewards]. Following the fixation period, one of the two side 
-      LEDs was illuminated, indicating that the reward might be delivered at that port; the side was randomly chosen on 
-      each trial.This event (side LED ON) also initiated a variable and unpredictable delay period, which was randomly 
-      drawn from an exponential distribution with mean=2.5s. The reward port LED remained illuminated for the duration 
-      of the delay period, and rats were not required to maintain fixation during this period, although they tended to 
-      fixate in the reward port. When reward was available, the reward port LED turned off, and rats could collect the 
+      fixation for a duration drawn uniformly from [0.8, 1.2] seconds. During the fixation period, a tone played from
+      both speakers, the frequency of which indicated the volume of the offered water reward for that trial
+      [1, 2, 4, 8, 16kHz, indicating 5, 10, 20, 40, 80μL rewards]. Following the fixation period, one of the two side
+      LEDs was illuminated, indicating that the reward might be delivered at that port; the side was randomly chosen on
+      each trial.This event (side LED ON) also initiated a variable and unpredictable delay period, which was randomly
+      drawn from an exponential distribution with mean=2.5s. The reward port LED remained illuminated for the duration
+      of the delay period, and rats were not required to maintain fixation during this period, although they tended to
+      fixate in the reward port. When reward was available, the reward port LED turned off, and rats could collect the
       offered reward by nose poking in that port. The rat could also choose to terminate the trial (opt-out) at any time
-      by nose poking in the opposite, un-illuminated side port, after which a new trial would immediately begin. On a 
-      proportion of trials (15–25%), the delay period would only end if the rat opted out (catch trials). If rats did 
-      not opt-out within 100s on catch trials, the trial would terminate. The trials were self-paced: after receiving 
-      their reward or opting out, rats were free to initiate another trial immediately. However, if rats terminated 
-      center fixation prematurely, they were penalized with a white noise sound and a time out penalty (typically 2s, 
-      although adjusted to individual animals). Following premature fixation breaks, the rats received the same offered 
-      reward, in order to disincentivize premature terminations for small volume offers. We introduced semi-observable, 
+      by nose poking in the opposite, un-illuminated side port, after which a new trial would immediately begin. On a
+      proportion of trials (15–25%), the delay period would only end if the rat opted out (catch trials). If rats did
+      not opt-out within 100s on catch trials, the trial would terminate. The trials were self-paced: after receiving
+      their reward or opting out, rats were free to initiate another trial immediately. However, if rats terminated
+      center fixation prematurely, they were penalized with a white noise sound and a time out penalty (typically 2s,
+      although adjusted to individual animals). Following premature fixation breaks, the rats received the same offered
+      reward, in order to disincentivize premature terminations for small volume offers. We introduced semi-observable,
       hidden states in the task by including uncued blocks of trials with varying reward statistics: high and low blocks
-      , which offered the highest three or lowest three rewards, respectively, and were interspersed with mixed blocks, 
-      which offered all volumes. There was a hierarchical structure to the blocks, such that high and low blocks 
-      alternated after mixed blocks (e.g., mixed-high-mixed-low, or mixed-low-mixed-high). The first block of each 
-      session was a mixed block. Blocks transitioned after 40 successfully completed trials. Because rats prematurely 
+      , which offered the highest three or lowest three rewards, respectively, and were interspersed with mixed blocks,
+      which offered all volumes. There was a hierarchical structure to the blocks, such that high and low blocks
+      alternated after mixed blocks (e.g., mixed-high-mixed-low, or mixed-low-mixed-high). The first block of each
+      session was a mixed block. Blocks transitioned after 40 successfully completed trials. Because rats prematurely
       broke fixation on a subset of trials, in practice, block durations were variable.
   StateTypesTable:
     description: Contains the name of the states in the task.
@@ -125,11 +125,11 @@ Behavior:
       output_type: numeric
     Block:
       name: block_type
-      description: The block type (High, Low or Mixed). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. The mixed blocks offered all volumes.
+      description: The block type (High, Low or Test). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. Test blocks are mixed blocks.
       expression_type: string
       output_type: string
     BlockLengthTest:
-      name: num_trials_in_mixed_blocks
+      name: num_trials_in_test_blocks
       description: The number of trials in each mixed blocks.
       expression_type: integer
       output_type: numeric
@@ -247,9 +247,4 @@ Behavior:
       name: num_trials_in_stage_8
       description: Determines how many trials occur in stage 8 before transition.
       expression_type: integer
-      output_type: numeric
-    HiITI:
-      name: high_ITI
-      description: Task parameter. # no description provided
-      expression_type: double
       output_type: numeric

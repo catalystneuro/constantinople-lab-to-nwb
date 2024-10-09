@@ -7,6 +7,7 @@ from constantinople_lab_to_nwb.fiber_photometry.interfaces import (
     DoricFiberPhotometryInterface,
     DoricCsvFiberPhotometryInterface,
 )
+from constantinople_lab_to_nwb.general_interfaces import BpodBehaviorInterface
 
 
 class FiberPhotometryNWBConverter(NWBConverter):
@@ -15,6 +16,7 @@ class FiberPhotometryNWBConverter(NWBConverter):
     data_interface_classes = dict(
         DeepLabCut=DeepLabCutInterface,
         Video=VideoInterface,
+        Behavior=BpodBehaviorInterface,
     )
 
     def __init__(self, source_data: dict[str, dict], verbose: bool = True):
