@@ -314,14 +314,24 @@ class Mah2024BpodInterface(BaseDataInterface):
         states_table = StatesTable(description=states_table_metadata["description"], state_types_table=state_types)
 
         trials_data = self._bpod_struct["RawEvents"]["Trial"]
-        for state_name in trials_data[0]["States"]:
+        num_trials = self._bpod_struct["nTrials"]
+
+        # make it iterable if only one trial
+        if num_trials == 1:
+            trials_data = [trials_data]
+            trial_start_times = [trial_start_times]
+
+        unique_state_names = set()
+        for trial_index in range(num_trials):
+            unique_state_names.update(trials_data[trial_index]["States"])
+        for state_name in unique_state_names:
             if state_name not in state_types_metadata:
                 raise ValueError(
-                    f"State '{state_name}' not found in metadata. Please provide in metadata['Behavior']['StateTypesTable']."
+                    f"State '{state_name}' not in metadata. State type should be defined in metadata['Behavior']['StateTypesTable']."
                 )
-
+            state_type = state_types_metadata[state_name]["name"]
             state_types.add_row(
-                state_name=state_types_metadata[state_name]["name"],
+                state_name=state_type,
                 check_ragged=False,
             )
 
