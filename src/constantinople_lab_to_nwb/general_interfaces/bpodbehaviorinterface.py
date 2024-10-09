@@ -23,8 +23,8 @@ from ndx_structured_behavior.utils import loadmat
 from pynwb import NWBFile
 
 
-class Mah2024BpodInterface(BaseDataInterface):
-    """Behavior interface for mah_2024 conversion"""
+class BpodBehaviorInterface(BaseDataInterface):
+    """Behavior interface for converting behavior data from Bpod system."""
 
     def __init__(
         self,
