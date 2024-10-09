@@ -30,6 +30,10 @@ NWBFile:
     blocks which offered all rewards. 20μL was present in all blocks, so comparing behavior on trials
     offering this reward revealed contextual effects (i.e., effects of hidden states). The hidden states differed in
     their average reward and therefore in their opportunity costs, or what the rat might miss out on by continuing to wait.
+  keywords:
+    - decision making
+    - reinforcement learning
+    - hidden state inference
   institution: NYU Center for Neural Science
   lab: Constantinople
   experimenter:
