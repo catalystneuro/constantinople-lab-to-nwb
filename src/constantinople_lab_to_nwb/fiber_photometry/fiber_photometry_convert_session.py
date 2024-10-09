@@ -13,6 +13,7 @@ from ndx_pose import PoseEstimation
 
 def session_to_nwb(
     raw_fiber_photometry_file_path: Union[str, Path],
+    raw_behavior_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     dlc_file_path: Optional[Union[str, Path]] = None,
     video_file_path: Optional[Union[str, Path]] = None,
@@ -26,6 +27,8 @@ def session_to_nwb(
     ----------
     raw_fiber_photometry_file_path : Union[str, Path]
         Path to the raw fiber photometry file.
+    raw_behavior_file_path : Union[str, Path]
+        Path to the raw Bpod output (.mat file).
     nwbfile_path : Union[str, Path]
         Path to the NWB file.
     dlc_file_path : Union[str, Path], optional
@@ -79,6 +82,22 @@ def session_to_nwb(
     if video_file_path is not None:
         source_data.update(dict(Video=dict(file_paths=[video_file_path])))
 
+    # Add behavior data
+    source_data.update(dict(Behavior=dict(file_path=raw_behavior_file_path)))
+    # Exclude some task arguments from the trials table that are the same for all trials
+    task_arguments_to_exclude = [
+        "BlockLengthTest",
+        "BlockLengthAd",
+        "TrialsStage2",
+        "TrialsStage3",
+        "TrialsStage4",
+        "TrialsStage5",
+        "TrialsStage6",
+        "TrialsStage8",
+        "CTrial",
+    ]
+    conversion_options.update(dict(Behavior=dict(task_arguments_to_exclude=task_arguments_to_exclude)))
+
     converter = FiberPhotometryNWBConverter(source_data=source_data, verbose=verbose)
 
     # Add datetime to conversion
@@ -100,6 +119,11 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
+    # Update behavior metadata
+    behavior_metadata_path = Path(__file__).parent / "metadata" / "behavior_metadata.yaml"
+    behavior_metadata = load_dict_from_file(behavior_metadata_path)
+    metadata = dict_deep_update(metadata, behavior_metadata)
+
     # Run conversion
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
@@ -115,6 +139,12 @@ if __name__ == "__main__":
     doric_fiber_photometry_file_path = Path(
         "/Volumes/T9/Constantinople/Preprocessed_data/J069/Raw/J069_ACh_20230809_HJJ_0002.doric"
     )
+
+    # The raw behavior data from Bpod (contains data for a single session)
+    bpod_behavior_file_path = Path(
+        "/Volumes/T9/Constantinople/raw_Bpod/J069/DataFiles/J069_RWTautowait2_20230809_131216.mat"
+    )
+
     # DLC file path (optional)
     dlc_file_path = Path(
         "/Volumes/T9/Constantinople/DeepLabCut/J069/J069-2023-08-09_rig104cam01_0002compDLC_resnet50_GRAB_DA_DMS_RIG104DoricCamera_J029May12shuffle1_500000.h5"
@@ -133,6 +163,7 @@ if __name__ == "__main__":
 
     session_to_nwb(
         raw_fiber_photometry_file_path=doric_fiber_photometry_file_path,
+        raw_behavior_file_path=bpod_behavior_file_path,
         nwbfile_path=nwbfile_path,
         dlc_file_path=dlc_file_path,
         video_file_path=behavior_video_file_path,
