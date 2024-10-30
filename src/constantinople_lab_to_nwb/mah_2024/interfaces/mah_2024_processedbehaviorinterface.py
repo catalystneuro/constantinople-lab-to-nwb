@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from ndx_structured_behavior.utils import loadmat
 from neuroconv import BaseDataInterface
+from neuroconv.utils import get_base_schema, DeepDict
+from pynwb.epoch import TimeIntervals
 from pynwb.file import NWBFile
 
 
@@ -35,6 +37,8 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
 
         self.default_struct_name = default_struct_name
         self.date_index = date_index
+        self._side_name_mapping = {"L": "Left", "R": "Right"}
+        self._block_name_mapping = {1: "Mixed", 2: "High", 3: "Low"}
         super().__init__(file_path=file_path, verbose=verbose)
 
     def _read_file(self, file_path: Union[str, Path]) -> pd.DataFrame:
@@ -80,9 +84,33 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
             dataframe["side"] = side_to_add
 
         if "wait_thresh" in data:
-            dataframe["wait_thresh"] = data["wait_thresh"] * len(dataframe)
+            dataframe["wait_thresh"] = [data["wait_thresh"]] * len(dataframe)
 
         return dataframe
+
+    def get_metadata_schema(self) -> dict:
+        metadata_schema = super().get_metadata_schema()
+        metadata_schema["properties"]["Behavior"] = get_base_schema(tag="Behavior")
+        metadata_schema["properties"]["Behavior"].update(
+            required=["TimeIntervals"],
+            properties=dict(
+                TimeIntervals=dict(
+                    type="object",
+                    properties=dict(name=dict(type="string"), description=dict(type="string")),
+                )
+            ),
+        )
+        return metadata_schema
+
+    def get_metadata(self) -> dict:
+        metadata = super().get_metadata()
+        metadata["Behavior"] = dict(
+            TimeIntervals=dict(
+                name="processed_trials",
+                description="Contains the processed Bpod trials.",
+            )
+        )
+        return metadata
 
     def add_to_nwbfile(
         self,
@@ -90,14 +118,21 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
         metadata: dict,
         column_name_mapping: Optional[dict] = None,
         column_descriptions: Optional[dict] = None,
+        trial_start_times: Optional[list] = None,
+        trial_stop_times: Optional[list] = None,
     ) -> None:
         dataframe = self._read_file(file_path=self.source_data["file_path"])
 
-        if "side" in dataframe.columns:
-            side_mapping = {"L": "Left", "R": "Right"}
-            dataframe["side"] = dataframe["side"].map(side_mapping)
+        time_intervals_metadata = metadata["Behavior"]["TimeIntervals"]
+        trials_table = TimeIntervals(**time_intervals_metadata)
 
-        columns_with_boolean = ["hits", "vios", "optout"]
+        if "side" in dataframe.columns:
+            dataframe["side"] = dataframe["side"].map(self._side_name_mapping)
+
+        if "block" in dataframe.columns:
+            dataframe["block"] = dataframe["block"].map(self._block_name_mapping)
+
+        columns_with_boolean = ["catch", "hits", "vios", "optout"]
         for column in columns_with_boolean:
             if column in dataframe.columns:
                 dataframe[column] = dataframe[column].astype(bool)
@@ -106,9 +141,30 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
         if column_name_mapping is not None:
             columns_to_add = [column for column in column_name_mapping.keys() if column in dataframe.columns]
 
-        trials = nwbfile.trials
-        if trials is None:
-            raise ValueError("Trials table not found in NWB file.")
+        num_trials = len(dataframe)
+        if nwbfile.trials is None:
+            assert (
+                trial_start_times is not None
+            ), "'trial_start_times' must be provided if trials table is not in acquisition."
+            assert (
+                trial_stop_times is not None
+            ), "'trial_stop_times' must be provided if trials table is not in acquisition."
+            assert (
+                len(trial_start_times) == num_trials
+            ), f"Length of 'trial_start_times' ({len(trial_start_times)}) must match the number of trials ({num_trials})."
+            assert (
+                len(trial_stop_times) == num_trials
+            ), f"Length of 'trial_stop_times' ({len(trial_stop_times)}) must match the number of trials ({num_trials})."
+        else:
+            trial_start_times = nwbfile.trials["start_time"][:]
+            trial_stop_times = nwbfile.trials["stop_time"][:]
+
+        for start_time, stop_time in zip(trial_start_times, trial_stop_times):
+            trials_table.add_row(
+                start_time=start_time,
+                stop_time=stop_time,
+                check_ragged=False,
+            )
 
         for column_name in columns_to_add:
             name = column_name_mapping.get(column_name, column_name) if column_name_mapping is not None else column_name
@@ -117,8 +173,10 @@ class Mah2024ProcessedBehaviorInterface(BaseDataInterface):
                 if column_descriptions is not None
                 else "no description"
             )
-            trials.add_column(
+            trials_table.add_column(
                 name=name,
                 description=description,
                 data=dataframe[column_name].values.tolist(),
             )
+
+        nwbfile.add_time_intervals(trials_table)
