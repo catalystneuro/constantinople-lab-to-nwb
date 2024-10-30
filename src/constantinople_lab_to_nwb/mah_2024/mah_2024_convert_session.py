@@ -179,8 +179,17 @@ if __name__ == "__main__":
     processed_behavior_file_path = Path("/Volumes/T9/Constantinople/A_Structs/ratTrial_C005.mat")
     # The row index of the date in the processed behavior file
     date_index = 0
-    # The column name mapping is used to rename the columns in the processed data to more descriptive column names. (optional)
+    # The column name mapping is used to rename the columns in the processed data to more descriptive column names.
     column_name_mapping = dict(
+        trainingstage="training_stage",
+        nic="nose_in_center",
+        catch="is_catch",
+        prob_cacth="catch_percentage",
+        adapt_block="num_trials_in_adaptation_blocks",
+        test_block="num_trials_in_mixed_blocks",
+        reward="reward_volume_ul",
+        reward_delay="reward_delay",
+        block="block_type",
         hits="is_rewarded",
         vios="is_violation",
         optout="is_opt_out",
@@ -189,6 +198,7 @@ if __name__ == "__main__":
         wait_thresh="wait_time_threshold",
         wait_for_cpoke="wait_for_center_poke",
         zwait_for_cpoke="z_scored_wait_for_center_poke",
+        # timeout="timeout",
         side="rewarded_port",
         lpoke="num_left_pokes",
         rpoke="num_right_pokes",
@@ -200,8 +210,17 @@ if __name__ == "__main__":
         slrt="side_poke_reaction_time",
         ITI="inter_trial_interval",
     )
-    # The column descriptions are used to add descriptions to the columns in the processed data. (optional)
+    # The column descriptions are used to add descriptions to the columns in the processed data.
     column_descriptions = dict(
+        trainingstage="The stage of the training.",
+        nic="The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).",
+        catch="Whether the trial is a catch trial.",
+        prob_cacth="The percentage of catch trials.",
+        adapt_block="The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.",
+        test_block="The number of trials in each mixed blocks.",
+        reward="The volume of reward in microliters.",
+        reward_delay="The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.",
+        block="The block type (High, Low or Mixed). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. The mixed blocks offered all volumes.",
         hits="Whether the subject received reward for each trial.",
         vios="Whether the subject violated the trial by not maintaining center poke for the time required by 'nose_in_center'.",
         optout="Whether the subject opted out for each trial.",
@@ -232,7 +251,7 @@ if __name__ == "__main__":
     )
 
     # Path to the output NWB file
-    nwbfile_path = Path("/Volumes/T9/Constantinople/nwbfiles/C005_RWTautowait_20190909_145629.nwb")
+    nwbfile_path = Path("/Users/weian/data/demo/C005_RWTautowait_20190909_145629.nwb")
 
     # Whether to overwrite the NWB file if it already exists
     overwrite = True
