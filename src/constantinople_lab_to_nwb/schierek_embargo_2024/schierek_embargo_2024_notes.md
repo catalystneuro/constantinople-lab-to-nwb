@@ -59,8 +59,78 @@ The processed behavior data is stored in custom .mat files (e.g. `J076_2023-12-1
   - `recordingLength` – time duration of the entire recording
   - `wait_thresh` – time threshold for wait times of engagement for this session.
 
+#### TimeIntervals
+
+We are adding the processed trials data to the NWB file as [TimeIntervals](https://pynwb.readthedocs.io/en/stable/pynwb.epoch.html).
+The `processed_trials` table will be stored in the `intervals` group in the NWB file.
+
+The `schierek_embargo_2024.session_to_nwb()` function uses the `column_name_mapping` and `column_descriptions` dictionaries
+to map the processed data to the NWB file. The `column_name_mapping` is used to rename the columns in the processed data
+to more descriptive column names. The `column_descriptions` are used to provide a description of each column in the processed data.
+
+```python
+# The column name mapping is used to rename the columns in the processed data to more descriptive column names. (optional)
+column_name_mapping = dict(
+    NoseInCenter="nose_in_center",
+    TrainingStage="training_stage",
+    Block="block_type",
+    BlockLengthAd="num_trials_in_adaptation_blocks",
+    BlockLengthTest="num_trials_in_test_blocks",
+    ProbCatch="catch_percentage",
+    RewardDelay="reward_delay",
+    RewardAmount="reward_volume_ul",
+    WaitForPoke="wait_for_center_poke",
+    hits="is_rewarded",
+    vios="is_violation",
+    optout="is_opt_out",
+    wait_time="wait_time",
+    wait_thresh="wait_time_threshold",
+    wait_for_cpoke="wait_for_center_poke",
+    zwait_for_cpoke="z_scored_wait_for_center_poke",
+    RewardedSide="rewarded_port",
+    Cled="center_poke_times",
+    Lled="left_poke_times",
+    Rled="right_poke_times",
+    l_opt="left_opt_out_times",
+    r_opt="right_opt_out_times",
+    ReactionTime="reaction_time",
+    slrt="short_latency_reaction_time",
+    iti="inter_trial_interval",
+)
+
+column_descriptions = dict(
+    NoseInCenter="The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).",
+    TrainingStage="The stage of the training.",
+    Block="The block type (High, Low or Test). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. Test blocks are mixed blocks.",
+    BlockLengthAd="The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.",
+    BlockLengthTest="The number of trials in each mixed blocks.",
+    ProbCatch="The percentage of catch trials.",
+    RewardDelay="The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.",
+    RewardAmount="The volume of reward in microliters.",
+    hits="Whether the subject received reward for each trial.",
+    vios="Whether the subject violated the trial by not maintaining center poke for the time required by 'nose_in_center'.",
+    optout="Whether the subject opted out for each trial.",
+    WaitForPoke="The time (s) between side port poke and center poke.",
+    wait_time="The wait time for the subject for for each trial in seconds, after removing outliers."
+        " For hit trials (when reward was delivered) the wait time is equal to the reward delay."
+        " For opt-out trials, the wait time is equal to the time waited from trial start to opting out.",
+    wait_for_cpoke="The time between side port poke and center poke in seconds, includes the time when the subject is consuming the reward.",
+    zwait_for_cpoke="The z-scored wait_for_cpoke using all trials.",
+    RewardedSide="The rewarded port (Left or Right) for each trial.",
+    Cled="The time of center port LED on/off for each trial (2 x ntrials).",
+    Lled="The time of left port LED on/off for each trial (2 x ntrials).",
+    Rled="The time of right port LED on/off for each trial (2 x ntrials).",
+    l_opt="The time of left port entered/exited for each trial (2 x ntrials).",
+    r_opt="The time of right port entered/exited for each trial (2 x ntrials).",
+    ReactionTime="The reaction time in seconds.",
+    slrt="The short-latency reaction time in seconds.",
+    iti="The time to initiate trial in seconds (the time between the end of the consummatory period and the time to initiate the next trial).",
+    wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
+)
+```
+
 ### Mapping to NWB
 
-The following UML diagram shows the mapping of the raw Bpod output to NWB.
+The following UML diagram shows the mapping of source data to NWB.
 
 ![nwb mapping](schierek_embargo_2024_uml.png)
