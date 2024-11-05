@@ -141,3 +141,29 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
         )
 
         return metadata
+
+    def temporally_align_data_interfaces(self):
+        processed_behavior_interface = self.data_interface_objects["ProcessedBehavior"]
+        center_port_aligned_times = processed_behavior_interface._get_aligned_center_port_times()
+
+        raw_behavior_interface = self.data_interface_objects["RawBehavior"]
+        bpod_struct = raw_behavior_interface._bpod_struct
+        bpod_first_trial_start_time = bpod_struct["TrialStartTimestamp"][0]
+        bpod_first_trial_relative_center_port_time = bpod_struct["RawEvents"]["Trial"][0]["States"]["NoseInCenter"][0]
+        bpod_first_trial_global_time = bpod_first_trial_start_time + bpod_first_trial_relative_center_port_time
+        # TODO: time shift was negative so I used abs here, is this correct?
+        time_shift = abs(bpod_first_trial_global_time - center_port_aligned_times[0])
+
+        recording_interface_names = [
+            interface_name for interface_name in self.data_interface_objects if "Recording" in interface_name
+        ]
+        for recording_interface_name in recording_interface_names:
+            recording_interface = self.data_interface_objects[recording_interface_name]
+            recording_interface.set_aligned_starting_time(aligned_starting_time=time_shift)
+
+        sorting_interface_names = [
+            interface_name for interface_name in self.data_interface_objects if "Sorting" in interface_name
+        ]
+        for sorting_interface_name in sorting_interface_names:
+            sorting_interface = self.data_interface_objects[sorting_interface_name]
+            sorting_interface.register_recording(self.data_interface_objects[recording_interface_names[0]])
