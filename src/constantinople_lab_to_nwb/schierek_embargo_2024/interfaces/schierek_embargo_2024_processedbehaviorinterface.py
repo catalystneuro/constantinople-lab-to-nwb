@@ -96,6 +96,11 @@ class SchierekEmbargo2024ProcessedBehaviorInterface(BaseDataInterface):
         if "Block" in data:
             data["Block"] = [self._block_name_mapping[block] for block in data["Block"]]
 
+        num_trials = len(data["NoseInCenter"])
+        if "wait_thresh" in data:
+            # wait_thresh is a scalar, convert it to a list
+            data["wait_thresh"] = [data["wait_thresh"]] * num_trials
+
         columns_with_boolean = ["hits", "vios", "optout"]
         for column in columns_with_boolean:
             if column in data:
@@ -105,7 +110,6 @@ class SchierekEmbargo2024ProcessedBehaviorInterface(BaseDataInterface):
         if column_name_mapping is not None:
             columns_to_add = [column for column in column_name_mapping.keys() if column in data.keys()]
 
-        num_trials = len(data["NoseInCenter"])
         if nwbfile.trials is None:
             assert trial_start_times is not None, "'trial_start_times' must be provided if trials table is not added."
             assert trial_stop_times is not None, "'trial_stop_times' must be provided if trials table is not added."
