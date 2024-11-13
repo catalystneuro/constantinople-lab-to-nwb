@@ -17,20 +17,21 @@ from ndx_structured_behavior import (
     TaskArgumentsTable,
 )
 from neuroconv import BaseDataInterface
-from neuroconv.utils import DeepDict
+from neuroconv.utils import DeepDict, get_base_schema, get_schema_from_hdmf_class
 
 from ndx_structured_behavior.utils import loadmat
 from pynwb import NWBFile
+from pynwb.device import Device
 
 
-class Mah2024BpodInterface(BaseDataInterface):
-    """Behavior interface for mah_2024 conversion"""
+class BpodBehaviorInterface(BaseDataInterface):
+    """Behavior interface for converting behavior data from Bpod system."""
 
     def __init__(
-            self,
-            file_path: Union[str, Path],
-            default_struct_name: str = "SessionData",
-            verbose: bool = True,
+        self,
+        file_path: Union[str, Path],
+        default_struct_name: str = "SessionData",
+        verbose: bool = True,
     ):
         """
         Interface for converting raw Bpod data to NWB.
@@ -47,7 +48,39 @@ class Mah2024BpodInterface(BaseDataInterface):
         self.default_struct_name = default_struct_name
         self.file_path = file_path
         self._bpod_struct = self._read_file()
+        self._block_name_mapping = {1: "Mixed", 2: "High", 3: "Low"}
+        self._trial_start_times = None
+        self._trial_stop_times = None
         super().__init__(file_path=file_path, verbose=verbose)
+
+    def get_metadata_schema(self) -> dict:
+        metadata_schema = super().get_metadata_schema()
+        metadata_schema["properties"]["Behavior"] = get_base_schema(tag="Behavior")
+        device_schema = get_schema_from_hdmf_class(Device)
+        metadata_schema["properties"]["Behavior"].update(
+            required=[
+                "Device",
+                "StateTypesTable",
+                "StatesTable",
+                "ActionTypesTable",
+                "ActionsTable",
+                "EventTypesTable",
+                "EventsTable",
+                "TrialsTable",
+            ],
+            properties=dict(
+                Device=device_schema,
+                StateTypesTable=dict(type="object", properties=dict()),
+                StatesTable=dict(type="object", properties=dict()),
+                ActionTypesTable=dict(type="object", properties=dict()),
+                ActionsTable=dict(type="object", properties=dict()),
+                EventTypesTable=dict(type="object", properties=dict()),
+                EventsTable=dict(type="object", properties=dict()),
+                TrialsTable=dict(type="object", properties=dict()),
+                TaskArgumentsTable=dict(type="object", properties=dict()),
+            ),
+        )
+        return metadata_schema
 
     def get_metadata(self) -> DeepDict:
         metadata = super().get_metadata()
@@ -60,7 +93,7 @@ class Mah2024BpodInterface(BaseDataInterface):
         if "Info" in self._bpod_struct:
             info_dict = self._bpod_struct["Info"]
             date_string = info_dict["SessionDate"] + info_dict["SessionStartTime_UTC"]
-            session_start_time = datetime.strptime(date_string, '%d-%b-%Y%H:%M:%S')
+            session_start_time = datetime.strptime(date_string, "%d-%b-%Y%H:%M:%S")
             metadata["NWBFile"].update(session_start_time=session_start_time)
 
             # Device info
@@ -80,6 +113,7 @@ class Mah2024BpodInterface(BaseDataInterface):
             EventTypesTable=dict(description="Contains the name of the events in the task."),
             EventsTable=dict(description="Contains the onset times of events in the task."),
             TrialsTable=dict(description="Contains the start and end times of each trial in the task."),
+            TaskArgumentsTable=dict(description="Contains the task arguments for the task."),
         )
 
         task_arguments = dict(
@@ -139,13 +173,13 @@ class Mah2024BpodInterface(BaseDataInterface):
             ),
             Block=dict(
                 name="block_type",
-                description="The block type (High, Low or Test).",
+                description="The block type (High, Low or Mixed).",
                 expression_type="string",
                 output_type="string",
             ),
             BlockLengthTest=dict(
-                name="num_trials_in_test_blocks",
-                description="The number of trials in test blocks.",
+                name="num_trials_in_mixed_blocks",
+                description="The number of trials in mixed blocks.",
                 expression_type="integer",
                 output_type="numeric",
             ),
@@ -300,9 +334,21 @@ class Mah2024BpodInterface(BaseDataInterface):
         return mat_file[self.default_struct_name]
 
     def get_trial_times(self) -> (List[float], List[float]):
-        return self._bpod_struct["TrialStartTimestamp"], self._bpod_struct["TrialEndTimestamp"]
+        trial_start_times = (
+            self._trial_start_times if self._trial_start_times is not None else self._bpod_struct["TrialStartTimestamp"]
+        )
+        trial_stop_times = (
+            self._trial_stop_times if self._trial_stop_times is not None else self._bpod_struct["TrialEndTimestamp"]
+        )
+        return trial_start_times, trial_stop_times
 
-    def create_states_table(self, metadata: dict, trial_start_times: List[float]) -> tuple[StateTypesTable, StatesTable]:
+    def set_aligned_trial_times(self, trial_start_times: List[float], trial_stop_times: List[float]) -> None:
+        self._trial_start_times = trial_start_times
+        self._trial_stop_times = trial_stop_times
+
+    def create_states_table(
+        self, metadata: dict, trial_start_times: List[float]
+    ) -> tuple[StateTypesTable, StatesTable]:
         state_types_metadata = metadata["Behavior"]["StateTypesTable"]
         states_table_metadata = metadata["Behavior"]["StatesTable"]
 
@@ -311,9 +357,24 @@ class Mah2024BpodInterface(BaseDataInterface):
         states_table = StatesTable(description=states_table_metadata["description"], state_types_table=state_types)
 
         trials_data = self._bpod_struct["RawEvents"]["Trial"]
-        for state_name in trials_data[0]["States"]:
+        num_trials = self._bpod_struct["nTrials"]
+
+        # make it iterable if only one trial
+        if num_trials == 1:
+            trials_data = [trials_data]
+            trial_start_times = [trial_start_times]
+
+        unique_state_names = set()
+        for trial_index in range(num_trials):
+            unique_state_names.update(trials_data[trial_index]["States"])
+        for state_name in unique_state_names:
+            if state_name not in state_types_metadata:
+                raise ValueError(
+                    f"State '{state_name}' not in metadata. State type should be defined in metadata['Behavior']['StateTypesTable']."
+                )
+            state_type = state_types_metadata[state_name]["name"]
             state_types.add_row(
-                state_name=state_types_metadata[state_name]["name"],
+                state_name=state_type,
                 check_ragged=False,
             )
 
@@ -333,7 +394,9 @@ class Mah2024BpodInterface(BaseDataInterface):
 
         return state_types, states_table
 
-    def create_actions_table(self, metadata: dict, trial_start_times: List[float]) -> tuple[ActionTypesTable, ActionsTable]:
+    def create_actions_table(
+        self, metadata: dict, trial_start_times: List[float]
+    ) -> tuple[ActionTypesTable, ActionsTable]:
         action_types_metadata = metadata["Behavior"]["ActionTypesTable"]
         actions_table_metadata = metadata["Behavior"]["ActionsTable"]
 
@@ -350,13 +413,15 @@ class Mah2024BpodInterface(BaseDataInterface):
         for trial_states_and_events, trial_start_time in zip(trials_data, trial_start_times):
             events = trial_states_and_events["Events"]
 
-            sound_events = [event_name for event_name in events if "AudioPlayer" in event_name or "WavePlayer" in event_name]
+            sound_events = [
+                event_name for event_name in events if "AudioPlayer" in event_name or "WavePlayer" in event_name
+            ]
             if not len(sound_events):
                 continue
 
             for sound_event in sound_events:
                 timestamps = events[sound_event]
-                if isinstance(timestamps, float):
+                if not isinstance(timestamps, list):
                     timestamps = [timestamps]
                 for timestamp in timestamps:
                     actions_table.add_row(
@@ -368,7 +433,9 @@ class Mah2024BpodInterface(BaseDataInterface):
 
         return action_types, actions_table
 
-    def create_events_table(self, metadata: dict, trial_start_times: List[float]) -> tuple[EventTypesTable, EventsTable]:
+    def create_events_table(
+        self, metadata: dict, trial_start_times: List[float]
+    ) -> tuple[EventTypesTable, EventsTable]:
         event_types_metadata = metadata["Behavior"]["EventTypesTable"]
         events_table_metadata = metadata["Behavior"]["EventsTable"]
 
@@ -405,7 +472,7 @@ class Mah2024BpodInterface(BaseDataInterface):
                 if event_name not in event_value_mapping:
                     continue
                 relative_timestamps = events[event_name]
-                if isinstance(relative_timestamps, float):
+                if not isinstance(relative_timestamps, list):
                     relative_timestamps = [relative_timestamps]
                 event_type = event_types.event_name[:].index(event_types_metadata[event_name]["name"])
                 for timestamp in relative_timestamps:
@@ -434,8 +501,7 @@ class Mah2024BpodInterface(BaseDataInterface):
             if expression_type == "boolean":
                 task_argument_value = bool(task_argument_value)
             if task_argument_name == "Block":
-                block_name_mapping = {1: "Test", 2: "High", 3: "Low"}
-                task_argument_value = block_name_mapping[task_argument_value]
+                task_argument_value = self._block_name_mapping[task_argument_value]
 
             task_arguments.add_row(
                 argument_name=task_arguments_metadata[task_argument_name]["name"],
@@ -496,7 +562,6 @@ class Mah2024BpodInterface(BaseDataInterface):
             events_table=events_table,
             actions_table=actions_table,
         )
-        trial_stop_times = trial_start_times[1:] + [np.nan]
         for start, stop in zip(trial_start_times, trial_stop_times):
             states_table_df = states_table[:]
             states_index_mask = (states_table_df["start_time"] >= start) & (states_table_df["stop_time"] < stop)
@@ -520,10 +585,10 @@ class Mah2024BpodInterface(BaseDataInterface):
         nwbfile.trials = trials
 
     def add_task_arguments_to_trials(
-            self,
-            nwbfile: NWBFile,
-            metadata: dict,
-            arguments_to_exclude: List[str] = None,
+        self,
+        nwbfile: NWBFile,
+        metadata: dict,
+        arguments_to_exclude: List[str] = None,
     ) -> None:
         if arguments_to_exclude is None:
             arguments_to_exclude = []
@@ -539,17 +604,26 @@ class Mah2024BpodInterface(BaseDataInterface):
         for task_argument_name in task_arguments_for_this_session:
             if task_argument_name in arguments_to_exclude:
                 continue
-            task_argument_values = np.array([trial_settings["GUI"][task_argument_name] for trial_settings in trials_settings])
+            if task_argument_name not in task_arguments_metadata:
+                warn(f"Task argument '{task_argument_name}' not in metadata.")
+                task_argument_column_name = task_argument_name
+                description = "no description"
+            else:
+                task_argument_column_name = task_arguments_metadata[task_argument_name]["name"]
+                description = task_arguments_metadata[task_argument_name]["description"]
+
+            task_argument_values = np.array(
+                [trial_settings["GUI"][task_argument_name] for trial_settings in trials_settings]
+            )
             task_argument_type = task_arguments_metadata[task_argument_name]["expression_type"]
             if task_argument_type == "boolean":
                 task_argument_values = task_argument_values.astype(bool)
             elif task_argument_name == "Block":
-                block_name_mapping = {1: "Test", 2: "High", 3: "Low"}
-                task_argument_values = np.array([block_name_mapping[block] for block in task_argument_values])
+                task_argument_values = np.array([self._block_name_mapping[block] for block in task_argument_values])
 
             trials.add_column(
-                name=task_arguments_metadata[task_argument_name]["name"],
-                description=task_arguments_metadata[task_argument_name]["description"],
+                name=task_argument_column_name,
+                description=description,
                 data=task_argument_values,
             )
 

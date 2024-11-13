@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union, Optional
+from warnings import warn
 
 import pandas as pd
 from dateutil import tz
@@ -40,13 +41,16 @@ def get_subject_metadata_from_rat_info_folder(
         filtered_rat_registry = rat_registry[rat_registry["RatName"] == subject_id]
         if not filtered_rat_registry.empty:
             date_of_birth = filtered_rat_registry["DOB"].values[0]
-            # convert date of birth to datetime with format "yyyy-mm-dd"
-            date_of_birth = pd.to_datetime(date_of_birth, format="%Y-%m-%d")
-            sex = filtered_rat_registry["sex"].values[0]
-            subject_metadata.update(
-                date_of_birth=date_of_birth,
-                sex=sex,
-            )
+            if date_of_birth:
+                # convert date of birth to datetime with format "yyyy-mm-dd"
+                date_of_birth = pd.to_datetime(date_of_birth, format="%Y-%m-%d")
+                subject_metadata.update(date_of_birth=date_of_birth)
+            else:
+                # TODO: what to do if date of birth is missing?
+                warn("Date of birth is missing. We recommend adding this information to the rat info files.")
+                # Using age range specified in the manuscript
+                subject_metadata.update(age="P6M/P24M")
+            subject_metadata.update(sex=filtered_rat_registry["sex"].values[0])
             vendor = filtered_rat_registry["vendor"].values[0]
             if vendor:
                 subject_metadata.update(description=f"Vendor: {vendor}")
@@ -69,7 +73,7 @@ def get_subject_metadata_from_rat_info_folder(
 def session_to_nwb(
     raw_behavior_file_path: Union[str, Path],
     processed_behavior_file_path: Union[str, Path],
-    date: str,
+    date_index: int,
     nwbfile_path: Union[str, Path],
     column_name_mapping: Optional[dict] = None,
     column_descriptions: Optional[dict] = None,
@@ -122,7 +126,7 @@ def session_to_nwb(
     conversion_options.update(dict(RawBehavior=dict(task_arguments_to_exclude=task_arguments_to_exclude)))
 
     # Add Processed Behavior
-    source_data.update(dict(ProcessedBehavior=dict(file_path=processed_behavior_file_path, date=date)))
+    source_data.update(dict(ProcessedBehavior=dict(file_path=processed_behavior_file_path, date_index=date_index)))
     conversion_options.update(
         dict(ProcessedBehavior=dict(column_name_mapping=column_name_mapping, column_descriptions=column_descriptions))
     )
@@ -130,6 +134,7 @@ def session_to_nwb(
     converter = Mah2024NWBConverter(source_data=source_data, verbose=verbose)
 
     subject_id, session_id = Path(raw_behavior_file_path).stem.split("_", maxsplit=1)
+    protocol = session_id.split("_")[0]
     session_id = session_id.replace("_", "-")
 
     # Add datetime to conversion
@@ -139,6 +144,7 @@ def session_to_nwb(
     metadata["NWBFile"].update(
         session_start_time=session_start_time.replace(tzinfo=tzinfo),
         session_id=session_id,
+        protocol=protocol,
     )
 
     # Update default metadata with the editable in the corresponding yaml file
@@ -171,10 +177,19 @@ if __name__ == "__main__":
     bpod_file_path = Path("/Volumes/T9/Constantinople/raw_Bpod/C005/DataFiles/C005_RWTautowait_20190909_145629.mat")
     # The processed behavior data is stored in a .mat file (contains data for multiple days)
     processed_behavior_file_path = Path("/Volumes/T9/Constantinople/A_Structs/ratTrial_C005.mat")
-    # The date is used to identify the session to convert from the processed behavior file
-    date = "09-Sep-2019"
-    # The column name mapping is used to rename the columns in the processed data to more descriptive column names. (optional)
+    # The row index of the date in the processed behavior file
+    date_index = 0
+    # The column name mapping is used to rename the columns in the processed data to more descriptive column names.
     column_name_mapping = dict(
+        trainingstage="training_stage",
+        nic="nose_in_center",
+        catch="is_catch",
+        prob_cacth="catch_percentage",
+        adapt_block="num_trials_in_adaptation_blocks",
+        test_block="num_trials_in_mixed_blocks",
+        reward="reward_volume_ul",
+        reward_delay="reward_delay",
+        block="block_type",
         hits="is_rewarded",
         vios="is_violation",
         optout="is_opt_out",
@@ -183,6 +198,7 @@ if __name__ == "__main__":
         wait_thresh="wait_time_threshold",
         wait_for_cpoke="wait_for_center_poke",
         zwait_for_cpoke="z_scored_wait_for_center_poke",
+        # timeout="timeout",
         side="rewarded_port",
         lpoke="num_left_pokes",
         rpoke="num_right_pokes",
@@ -191,11 +207,20 @@ if __name__ == "__main__":
         rpokedur="duration_of_right_pokes",
         cpokedur="duration_of_center_pokes",
         rt="reaction_time",
-        slrt="short_latency_reaction_time",
+        slrt="side_poke_reaction_time",
         ITI="inter_trial_interval",
     )
-    # The column descriptions are used to add descriptions to the columns in the processed data. (optional)
+    # The column descriptions are used to add descriptions to the columns in the processed data.
     column_descriptions = dict(
+        trainingstage="The stage of the training.",
+        nic="The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).",
+        catch="Whether the trial is a catch trial.",
+        prob_cacth="The percentage of catch trials.",
+        adapt_block="The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.",
+        test_block="The number of trials in each mixed blocks.",
+        reward="The volume of reward in microliters.",
+        reward_delay="The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.",
+        block="The block type (High, Low or Mixed). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. The mixed blocks offered all volumes.",
         hits="Whether the subject received reward for each trial.",
         vios="Whether the subject violated the trial by not maintaining center poke for the time required by 'nose_in_center'.",
         optout="Whether the subject opted out for each trial.",
@@ -212,7 +237,7 @@ if __name__ == "__main__":
         rpokedur="The duration of right pokes for each trial in seconds.",
         cpokedur="The duration of center pokes for each trial in seconds.",
         rt="The reaction time in seconds.",
-        slrt="The short-latency reaction time in seconds.",
+        slrt="The side poke reaction time in seconds.",
         ITI="The time to initiate trial in seconds (the time between the end of the consummatory period and the time to initiate the next trial).",
         wait_time_unthresholded="The wait time for the subject for each trial in seconds without removing outliers.",
         wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
@@ -226,7 +251,7 @@ if __name__ == "__main__":
     )
 
     # Path to the output NWB file
-    nwbfile_path = Path("/Volumes/T9/Constantinople/nwbfiles/C005_RWTautowait_20190909_145629.nwb")
+    nwbfile_path = Path("/Users/weian/data/demo/C005_RWTautowait_20190909_145629.nwb")
 
     # Whether to overwrite the NWB file if it already exists
     overwrite = True
@@ -236,7 +261,7 @@ if __name__ == "__main__":
     session_to_nwb(
         raw_behavior_file_path=bpod_file_path,
         processed_behavior_file_path=processed_behavior_file_path,
-        date=date,
+        date_index=date_index,
         column_name_mapping=column_name_mapping,
         column_descriptions=column_descriptions,
         nwbfile_path=nwbfile_path,
