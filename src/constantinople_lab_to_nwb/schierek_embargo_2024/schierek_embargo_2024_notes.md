@@ -131,11 +131,8 @@ column_descriptions = dict(
 
 ### Temporal alignment
 
-1. Align trial-base relative timestamps to Raw Bpod trial start time:
-For each trial sum all relative timestamps to the respective trial start time
-
-2. Align TTL signals to Raw Bpod trial times:
-Compute the time shift from global center port timestamps (`global_center_port_times`) to the aligned center port timestamps.
+Align TTL signals to Raw Bpod trial times:
+Compute the time shift from raw Bpod trial start times to the aligned center port timestamps.
 The aligned center port times can be accessed from the processed behavior data using the `"Cled"` field.
 
 ```python
@@ -144,17 +141,12 @@ from ndx_structured_behavior.utils import loadmat
 bpod_data = loadmat("path/to/bpod_session.mat")["SessionData"] # should contain "SessionData" named struct
 S_struct_data = loadmat("path/to/processed_behavior.mat")["S"] # should contain "S" named struct
 
+# The trial start times from the Bpod data
 bpod_trial_start_times = bpod_data['TrialStartTimestamp']
-num_trials = len(bpod_trial_start_times)
-global_center_port_times = []
-for i in range(num_trials):
-  center_port_relative_start_time = bpod_data["RawEvents"]["Trial"][i]["States"]["NoseInCenter"][0]
-  bpod_global_start_times = bpod_trial_start_times[i] + center_port_relative_start_time
-  global_center_port_times.append(bpod_global_start_times)
 
 # "Cled" field contains the aligned onset and offset times for each trial [2 x ntrials]
 center_port_aligned_onset_times = [center_port_times[0] for center_port_times in S_struct_data["Cled"]]
-time_shift = global_center_port_times[0] - center_port_aligned_onset_times[0]
+time_shift = bpod_trial_start_times[0] - center_port_aligned_onset_times[0]
 ```
 
 We are using this computed time shift to shift the ephys timestamps.
