@@ -85,7 +85,7 @@ Ophys:
       name: fiber_photometry_table
       description: TBD
       rows:
-        - name: 0
+        - name: 1
           location: DMS
           # coordinates: [0.8, 1.5, 2.8]
           # commanded_voltage_series: commanded_voltage_series_dms_calcium_signal
@@ -96,7 +96,7 @@ Ophys:
           excitation_filter: excitation_filter
           emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
-        - name: 1
+        - name: 3
           location: DLS
           # coordinates: [0.8, 1.5, 2.8]
           indicator: grab_da_dms
@@ -106,7 +106,7 @@ Ophys:
           excitation_filter: excitation_filter
           emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
-        - name: 2
+        - name: 0
           location: DMS
           # coordinates: [0.8, 1.5, 2.8]
           # commanded_voltage_series: commanded_voltage_series_dms_isosbestic_control
@@ -117,7 +117,7 @@ Ophys:
           excitation_filter: isosbestic_excitation_filter
           emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
-        - name: 3
+        - name: 2
           location: DLS
             # coordinates: [0.8, 1.5, 2.8]
           indicator: mcherry
@@ -128,17 +128,39 @@ Ophys:
           emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
     FiberPhotometryResponseSeries:
-      - name: fiber_photometry_response_series_green
+      - name: fiber_photometry_response_series
         description: The raw fluorescence signal # TBD
         stream_name: "/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn"
-        stream_indices: [1] #[1, 3]
+        channel_ids: ["AIN01", "AIN02", "AIN03", "AIN04"]
         unit: a.u.
-        fiber_photometry_table_region: [0] #[0, 1]
+        fiber_photometry_table_region: [0, 1, 2, 3] #[0, 1]
         fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw fluorescence signal.
-      - name: fiber_photometry_response_series_red
-        description: The raw fluorescence signal # TBD
-        stream_name: "/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn/"
-        stream_indices: [0, 2]
+      - name: fiber_photometry_response_series_isosbestic
+        description: The isosbestic signal # TBD
+        stream_name: "/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT01"
+        channel_ids: ["AIN02", "AIN04"]
         unit: a.u.
-        fiber_photometry_table_region: [2, 3]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw fluorescence signal.
+        fiber_photometry_table_region: [0, 2]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the isosbestic signal.
+      - name: fiber_photometry_response_series_motion_corrected_green
+        description: The motion corrected signal # TBD
+        stream_name: "/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT02"#, "/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT03", "/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT04"]
+        channel_ids: ["AIN02", "AIN04"]
+        unit: a.u.
+        fiber_photometry_table_region: [1, 3]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
+        # TODO: modify to accept multiple streams
+      - name: fiber_photometry_response_series_motion_corrected_red_cordA
+        description: The motion corrected signal # TBD
+        stream_name: "/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT03" #"/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT04"]
+        channel_ids: ["AIN01"]
+        unit: a.u.
+        fiber_photometry_table_region: [0]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
+      - name: fiber_photometry_response_series_motion_corrected_red_cordB
+        description: The motion corrected signal # TBD
+        stream_name: "/DataAcquisition/FPConsole/Signals/Series0001/LockInAOUT04"
+        channel_ids: ["AIN03"]
+        unit: a.u.
+        fiber_photometry_table_region: [2]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
