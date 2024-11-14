@@ -25,7 +25,7 @@ def session_to_nwb(
     Parameters
     ----------
     raw_fiber_photometry_file_path : Union[str, Path]
-        Path to the raw fiber photometry file.
+        Path to the raw fiber photometry file (.doric or .csv).
     nwbfile_path : Union[str, Path]
         Path to the NWB file.
     dlc_file_path : Union[str, Path], optional
@@ -48,30 +48,18 @@ def session_to_nwb(
     # Add fiber photometry data
     file_suffix = raw_fiber_photometry_file_path.suffix
     if file_suffix == ".doric":
-        raw_stream_name = "/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn"
+        fiber_photometry_metadata_file_name = "doric_fiber_photometry_metadata.yaml"
+        interface_name = "FiberPhotometryDoric"
     elif file_suffix == ".csv":
-        raw_stream_name = "Raw"
+        fiber_photometry_metadata_file_name = "doric_csv_fiber_photometry_metadata.yaml"
+        interface_name = "FiberPhotometryCsv"
     else:
         raise ValueError(
             f"File '{raw_fiber_photometry_file_path}' extension should be either .doric or .csv and not '{file_suffix}'."
         )
 
-    source_data.update(
-        dict(
-            FiberPhotometry=dict(
-                file_path=raw_fiber_photometry_file_path,
-                stream_name=raw_stream_name,
-            )
-        )
-    )
-    conversion_options.update(
-        dict(
-            FiberPhotometry=dict(
-                stub_test=stub_test,
-                fiber_photometry_series_name="fiber_photometry_response_series_green",
-            )
-        )
-    )
+    source_data.update({interface_name: dict(file_path=raw_fiber_photometry_file_path, verbose=verbose)})
+    conversion_options.update({interface_name: dict(stub_test=stub_test)})
 
     if dlc_file_path is not None:
         source_data.update(dict(DeepLabCut=dict(file_path=dlc_file_path)))
@@ -96,7 +84,7 @@ def session_to_nwb(
         metadata["NWBFile"].update(session_start_time=session_start_time.replace(tzinfo=tzinfo))
 
     # Update default metadata with the editable in the corresponding yaml file
-    editable_metadata_path = Path(__file__).parent / "metadata" / "fiber_photometry_metadata.yaml"
+    editable_metadata_path = Path(__file__).parent / "metadata" / fiber_photometry_metadata_file_name
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
