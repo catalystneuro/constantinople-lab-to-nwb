@@ -8,6 +8,23 @@ from pynwb import NWBFile
 
 
 def add_fiber_photometry_devices(nwbfile: NWBFile, metadata: dict):
+    """
+    Add fiber photometry devices to the NWBFile based on the metadata dictionary.
+    The devices include OpticalFiber, ExcitationSource, Photodetector, BandOpticalFilter, EdgeOpticalFilter,
+    DichroicMirror, and Indicator. Device metadata is extracted from the "Ophys" section of the main metadata dictionary.
+    For example, metadata["Ophys"]["FiberPhotometry"]["OpticalFibers"] should contain a list of dictionaries, each
+    containing metadata for an OpticalFiber device.
+
+    Parameters
+    ----------
+    nwbfile : NWBFile
+        The NWBFile where the fiber photometry devices will be added.
+
+    metadata : dict
+        Dictionary containing metadata for the NWB file. Should include an "Ophys"
+        key, which in turn should contain a "FiberPhotometry" key with detailed
+        metadata for each device type.
+    """
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
     # Add Devices
     device_types = [
@@ -30,6 +47,18 @@ def add_fiber_photometry_devices(nwbfile: NWBFile, metadata: dict):
 
 
 def add_fiber_photometry_table(nwbfile: NWBFile, metadata: dict):
+    """
+    Adds a `FiberPhotometryTable` to the NWB file based on the metadata dictionary.
+    The metadata for the `FiberPhotometryTable` should be located in metadata["Ophys"]["FiberPhotometry"]["FiberPhotometryTable"].
+
+    Parameters
+    ----------
+    nwbfile : NWBFile
+        The NWB file where the `FiberPhotometryTable` will be added.
+    metadata : dict
+        A dictionary containing metadata necessary for constructing the Fiber Photometry
+        table. Expects keys "Ophys" and "FiberPhotometry" with appropriate subkeys.
+    """
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
     fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
 
@@ -60,7 +89,35 @@ def add_fiber_photometry_response_series(
     fiber_photometry_series_name: str,
     parent_container: Literal["acquisition", "processing/ophys"] = "acquisition",
 ):
+    """
+    Adds a `FiberPhotometryResponseSeries` to the NWBFile. This function first adds the necessary devices
+    and metadata to the NWBFile. Then, it creates a FiberPhotometryTable and adds rows to it based on the provided
+    metadata. Finally, it adds the FiberPhotometryResponseSeries to the specified container in the NWBFile.
 
+    Parameters
+    ----------
+    traces : np.ndarray
+        Numpy array containing the fiber photometry data.
+    timestamps : np.ndarray
+        Numpy array containing the timestamps corresponding to the fiber photometry data.
+    nwbfile : NWBFile
+        The NWBFile object to which the FiberPhotometryResponseSeries will be added.
+    metadata : dict
+        Dictionary containing metadata required for adding the FiberPhotometry devices, table,
+        and FiberPhotometryResponseSeries.
+    fiber_photometry_series_name : str
+        Name of the FiberPhotometryResponseSeries to be added.
+    parent_container : Literal["acquisition", "processing/ophys"], optional
+        Specifies the container within the NWBFile where the FiberPhotometryResponseSeries will be added.
+        Default is "acquisition".
+
+    Raises
+    ------
+    ValueError
+        If trace metadata for the specified series name is not found.
+        If the number of channels in traces does not match the number of rows in the fiber photometry table.
+        If the lengths of traces and timestamps do not match.
+    """
     add_fiber_photometry_devices(nwbfile=nwbfile, metadata=metadata)
 
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
