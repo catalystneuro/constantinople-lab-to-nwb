@@ -109,8 +109,8 @@ def session_to_nwb(
     ]
     conversion_options.update(dict(RawBehavior=dict(task_arguments_to_exclude=task_arguments_to_exclude)))
 
-    recording_folder_name = recording_folder_path.stem
-    subject_id, session_id = recording_folder_name.split("_", maxsplit=1)
+    subject_id, session_id = Path(raw_behavior_file_path).stem.split("_", maxsplit=1)
+    protocol = session_id.split("_")[0]
 
     converter_kwargs = dict(source_data=source_data)
 
@@ -132,7 +132,7 @@ def session_to_nwb(
     metadata["NWBFile"].update(
         session_start_time=session_start_time.replace(tzinfo=tzinfo),
         session_id=session_id,
-        # TODO: add protocol name for behavior task
+        protocol=protocol,
     )
 
     # Update default metadata with the editable in the corresponding yaml file
@@ -168,6 +168,15 @@ if __name__ == "__main__":
 
     # The column name mapping is used to rename the columns in the processed data to more descriptive column names. (optional)
     column_name_mapping = dict(
+        NoseInCenter="nose_in_center",
+        TrainingStage="training_stage",
+        Block="block_type",
+        BlockLengthAd="num_trials_in_adaptation_blocks",
+        BlockLengthTest="num_trials_in_test_blocks",
+        ProbCatch="catch_percentage",
+        RewardDelay="reward_delay",
+        RewardAmount="reward_volume_ul",
+        WaitForPoke="wait_for_center_poke",
         hits="is_rewarded",
         vios="is_violation",
         optout="is_opt_out",
@@ -187,9 +196,18 @@ if __name__ == "__main__":
     )
     # The column descriptions are used to add descriptions to the columns in the processed data. (optional)
     column_descriptions = dict(
+        NoseInCenter="The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).",
+        TrainingStage="The stage of the training.",
+        Block="The block type (High, Low or Test). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. Test blocks are mixed blocks.",
+        BlockLengthAd="The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.",
+        BlockLengthTest="The number of trials in each mixed blocks.",
+        ProbCatch="The percentage of catch trials.",
+        RewardDelay="The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.",
+        RewardAmount="The volume of reward in microliters.",
         hits="Whether the subject received reward for each trial.",
         vios="Whether the subject violated the trial by not maintaining center poke for the time required by 'nose_in_center'.",
         optout="Whether the subject opted out for each trial.",
+        WaitForPoke="The time (s) between side port poke and center poke.",
         wait_time="The wait time for the subject for for each trial in seconds, after removing outliers."
         " For hit trials (when reward was delivered) the wait time is equal to the reward delay."
         " For opt-out trials, the wait time is equal to the time waited from trial start to opting out.",
