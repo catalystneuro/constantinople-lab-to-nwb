@@ -143,6 +143,8 @@ def add_fiber_photometry_response_series(
         "emission_filter",
     ]
     for row_index in row_indices:
+        if row_index in fiber_photometry_table.id:
+            continue
         row_metadata = fiber_photometry_metadata["FiberPhotometryTable"]["rows"][row_index]
         row_data = {field: nwbfile.devices[row_metadata[field]] for field in device_fields if field in row_metadata}
         row_data["location"] = row_metadata["location"]
