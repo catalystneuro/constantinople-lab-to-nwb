@@ -51,6 +51,11 @@ class SchierekEmbargo2024SortingExtractor(BaseSorting):
         # Rename to 'ch' to match Phy output
         self.set_property(key="ch", values=channel_ids)
 
+        # add channel_depth
+        if "channel_depth" in units_data["SU"][0]:
+            channel_depths = [units_data["SU"][i]["channel_depth"] for i in range(num_units)]
+            self.set_property(key="channel_depth_um", values=channel_depths)
+
         electrode_properties_mapping = dict(
             channel_depth="channel_depth_um",
             location="brain_area",
