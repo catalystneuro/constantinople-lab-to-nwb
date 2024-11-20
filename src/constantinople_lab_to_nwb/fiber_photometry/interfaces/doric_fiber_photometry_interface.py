@@ -16,11 +16,17 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     def __init__(
         self,
         file_path: Union[str, Path],
+        root_data_path: str = "/DataAcquisition/FPConsole/Signals/Series0001",
         time_column_name: str = "Time",
         verbose: bool = True,
     ):
         super().__init__(file_path=file_path, verbose=verbose)
         self._timestamps = None
+        self._root_data_path = root_data_path
+        data = self.load()
+        if root_data_path not in data:
+            raise ValueError(f"The path '{root_data_path}' not found in '{self.source_data['file_path']}'.")
+        self._data = data[root_data_path]
         self._time_column_name = time_column_name
 
     def load(self):
@@ -31,8 +37,8 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
 
         return h5py.File(file_path, mode="r")
 
-    def get_original_timestamps(self, stream_name=str) -> np.ndarray:
-        channel_group = self.load()[stream_name]
+    def get_original_timestamps(self, stream_name: str) -> np.ndarray:
+        channel_group = self._data[stream_name].parent
         if self._time_column_name not in channel_group:
             raise ValueError(f"Time column '{self._time_column_name}' not found in '{stream_name}'.")
         return channel_group[self._time_column_name][:]
@@ -48,17 +54,13 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
         self._timestamps = np.array(aligned_timestamps)
 
-    def _get_traces(self, stream_name: str, channel_ids: list, stub_test: bool = False):
+    def _get_traces(self, stream_names: list, stub_test: bool = False):
         traces_to_add = []
-        data = self.load()
-        if stream_name not in data:
-            raise ValueError(f"Stream '{stream_name}' not found in '{self.source_data['file_path']}'.")
-        channel_group = data[stream_name]
-        all_channel_names = list(channel_group.keys())
-        for channel_name in channel_ids:
-            if channel_name not in all_channel_names:
-                raise ValueError(f"Channel '{channel_name}' not found in '{stream_name}'.")
-            trace = channel_group[channel_name]
+        for stream_name in stream_names:
+            if stream_name not in self._data:
+                raise ValueError(f"The path '{stream_name}' not found in '{self.source_data['file_path']}'.")
+
+            trace = self._data[stream_name]
             trace = trace[:100] if stub_test else trace[:]
             traces_to_add.append(trace)
 
@@ -75,12 +77,11 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
         fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
         for trace_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]:
             fiber_photometry_series_name = trace_metadata["name"]
-            stream_name = trace_metadata["stream_name"]
-            channel_ids = trace_metadata["channel_ids"]
+            stream_names = trace_metadata["stream_names"]
 
-            traces = self._get_traces(stream_name=stream_name, channel_ids=channel_ids, stub_test=stub_test)
+            traces = self._get_traces(stream_names=stream_names, stub_test=stub_test)
             # Get the timing information
-            timestamps = self.get_timestamps(stream_name=stream_name, stub_test=stub_test)
+            timestamps = self.get_timestamps(stream_name=stream_names[0], stub_test=stub_test)
 
             parent_container = "processing/ophys"
             if fiber_photometry_series_name == "fiber_photometry_response_series":
