@@ -1,15 +1,13 @@
 from pathlib import Path
-from typing import Union, Literal
+from typing import Union
 
 import h5py
 import numpy as np
 import pandas as pd
-from ndx_fiber_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseTemporalAlignmentInterface
-from neuroconv.tools import get_module
 from pynwb import NWBFile
 
-from constantinople_lab_to_nwb.fiber_photometry.utils import add_fiber_photometry_table, add_fiber_photometry_devices
+from constantinople_lab_to_nwb.fiber_photometry.utils import add_fiber_photometry_response_series
 
 
 class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
@@ -18,30 +16,31 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     def __init__(
         self,
         file_path: Union[str, Path],
-        stream_name: str,
+        time_column_name: str = "Time",
         verbose: bool = True,
     ):
+        super().__init__(file_path=file_path, verbose=verbose)
         self._timestamps = None
-        self._time_column_name = "Time"
-        super().__init__(file_path=file_path, stream_name=stream_name, verbose=verbose)
+        self._time_column_name = time_column_name
 
-    def load(self, stream_name: str):
+    def load(self):
         file_path = Path(self.source_data["file_path"])
         # check if suffix is .doric
         if file_path.suffix != ".doric":
             raise ValueError(f"File '{file_path}' is not a .doric file.")
 
-        channel_group = h5py.File(file_path, mode="r")[stream_name]
-        if self._time_column_name not in channel_group.keys():
-            raise ValueError(f"Time not found in '{stream_name}'.")
-        return channel_group
+        return h5py.File(file_path, mode="r")
 
-    def get_original_timestamps(self) -> np.ndarray:
-        channel_group = self.load(stream_name=self.source_data["stream_name"])
+    def get_original_timestamps(self, stream_name=str) -> np.ndarray:
+        channel_group = self.load()[stream_name]
+        if self._time_column_name not in channel_group:
+            raise ValueError(f"Time column '{self._time_column_name}' not found in '{stream_name}'.")
         return channel_group[self._time_column_name][:]
 
-    def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
-        timestamps = self._timestamps if self._timestamps is not None else self.get_original_timestamps()
+    def get_timestamps(self, stream_name=str, stub_test: bool = False) -> np.ndarray:
+        timestamps = (
+            self._timestamps if self._timestamps is not None else self.get_original_timestamps(stream_name=stream_name)
+        )
         if stub_test:
             return timestamps[:100]
         return timestamps
@@ -49,12 +48,17 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
         self._timestamps = np.array(aligned_timestamps)
 
-    def _get_traces(self, stream_name: str, stream_indices: list, stub_test: bool = False):
+    def _get_traces(self, stream_name: str, channel_ids: list, stub_test: bool = False):
         traces_to_add = []
-        data = self.load(stream_name=stream_name)
-        channel_names = list(data.keys())
-        for stream_index in stream_indices:
-            trace = data[channel_names[stream_index]]
+        data = self.load()
+        if stream_name not in data:
+            raise ValueError(f"Stream '{stream_name}' not found in '{self.source_data['file_path']}'.")
+        channel_group = data[stream_name]
+        all_channel_names = list(channel_group.keys())
+        for channel_name in channel_ids:
+            if channel_name not in all_channel_names:
+                raise ValueError(f"Channel '{channel_name}' not found in '{stream_name}'.")
+            trace = channel_group[channel_name]
             trace = trace[:100] if stub_test else trace[:]
             traces_to_add.append(trace)
 
@@ -65,116 +69,108 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        fiber_photometry_series_name: str,
-        parent_container: Literal["acquisition", "processing/ophys"] = "acquisition",
         stub_test: bool = False,
     ) -> None:
 
-        add_fiber_photometry_devices(nwbfile=nwbfile, metadata=metadata)
-
         fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
-        traces_metadata = fiber_photometry_metadata["FiberPhotometryResponseSeries"]
-        trace_metadata = next(
-            (trace for trace in traces_metadata if trace["name"] == fiber_photometry_series_name),
-            None,
-        )
-        if trace_metadata is None:
-            raise ValueError(f"Trace metadata for '{fiber_photometry_series_name}' not found.")
+        for trace_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]:
+            fiber_photometry_series_name = trace_metadata["name"]
+            stream_name = trace_metadata["stream_name"]
+            channel_ids = trace_metadata["channel_ids"]
 
-        add_fiber_photometry_table(nwbfile=nwbfile, metadata=metadata)
-        fiber_photometry_table = nwbfile.lab_meta_data["FiberPhotometry"].fiber_photometry_table
+            traces = self._get_traces(stream_name=stream_name, channel_ids=channel_ids, stub_test=stub_test)
+            # Get the timing information
+            timestamps = self.get_timestamps(stream_name=stream_name, stub_test=stub_test)
 
-        row_indices = trace_metadata["fiber_photometry_table_region"]
-        device_fields = [
-            "optical_fiber",
-            "excitation_source",
-            "photodetector",
-            "dichroic_mirror",
-            "indicator",
-            "excitation_filter",
-            "emission_filter",
-        ]
-        for row_index in row_indices:
-            row_metadata = fiber_photometry_metadata["FiberPhotometryTable"]["rows"][row_index]
-            row_data = {field: nwbfile.devices[row_metadata[field]] for field in device_fields if field in row_metadata}
-            row_data["location"] = row_metadata["location"]
-            if "coordinates" in row_metadata:
-                row_data["coordinates"] = row_metadata["coordinates"]
-            if "commanded_voltage_series" in row_metadata:
-                row_data["commanded_voltage_series"] = nwbfile.acquisition[row_metadata["commanded_voltage_series"]]
-            fiber_photometry_table.add_row(**row_data)
+            parent_container = "processing/ophys"
+            if fiber_photometry_series_name == "fiber_photometry_response_series":
+                parent_container = "acquisition"
 
-        stream_name = trace_metadata["stream_name"]
-        stream_indices = trace_metadata["stream_indices"]
-
-        traces = self._get_traces(stream_name=stream_name, stream_indices=stream_indices, stub_test=stub_test)
-
-        fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
-            description=trace_metadata["fiber_photometry_table_region_description"],
-            region=trace_metadata["fiber_photometry_table_region"],
-        )
-
-        # Get the timing information
-        timestamps = self.get_timestamps(stub_test=stub_test)
-
-        fiber_photometry_response_series = FiberPhotometryResponseSeries(
-            name=trace_metadata["name"],
-            description=trace_metadata["description"],
-            data=traces,
-            unit=trace_metadata["unit"],
-            fiber_photometry_table_region=fiber_photometry_table_region,
-            timestamps=timestamps,
-        )
-
-        if parent_container == "acquisition":
-            nwbfile.add_acquisition(fiber_photometry_response_series)
-        elif parent_container == "processing/ophys":
-            ophys_module = get_module(
-                nwbfile,
-                name="ophys",
-                description="Contains the processed fiber photometry data.",
+            add_fiber_photometry_response_series(
+                traces=traces,
+                timestamps=timestamps,
+                nwbfile=nwbfile,
+                metadata=metadata,
+                fiber_photometry_series_name=fiber_photometry_series_name,
+                parent_container=parent_container,
             )
-            ophys_module.add(fiber_photometry_response_series)
 
 
-class DoricCsvFiberPhotometryInterface(DoricFiberPhotometryInterface):
+class DoricCsvFiberPhotometryInterface(BaseTemporalAlignmentInterface):
 
     def __init__(
         self,
         file_path: Union[str, Path],
-        stream_name: str,
+        time_column_name: str = "Time(s)",
         verbose: bool = True,
     ):
-        super().__init__(file_path=file_path, stream_name=stream_name, verbose=verbose)
-        self._time_column_name = "Time(s)"
+        super().__init__(file_path=file_path, verbose=verbose)
+        self._time_column_name = time_column_name
+        self._timestamps = None
 
     def get_original_timestamps(self) -> np.ndarray:
-        channel_group = self.load(stream_name=self.source_data["stream_name"])
-        return channel_group[self._time_column_name].values
+        df = self.load()
+        return df[self._time_column_name].values
 
-    def load(self, stream_name: str):
+    def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
+        timestamps = self._timestamps if self._timestamps is not None else self.get_original_timestamps()
+        if stub_test:
+            return timestamps[:100]
+        return timestamps
+
+    def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
+        self._timestamps = np.array(aligned_timestamps)
+
+    def load(self):
         file_path = Path(self.source_data["file_path"])
         # check if suffix is .doric
         if file_path.suffix != ".csv":
             raise ValueError(f"File '{file_path}' is not a .csv file.")
 
-        df = pd.read_csv(file_path, header=[0, 1])
-        df = df.droplevel(0, axis=1)
+        df = pd.read_csv(
+            file_path,
+            header=1,
+            index_col=False,
+        )
         if self._time_column_name not in df.columns:
             raise ValueError(f"Time column not found in '{file_path}'.")
-        filtered_columns = [col for col in df.columns if stream_name in col]
-        filtered_columns.append(self._time_column_name)
-        df = df[filtered_columns]
         return df
 
-    def _get_traces(self, stream_name: str, stream_indices: list, stub_test: bool = False):
+    def _get_traces(self, channel_column_names: list, stub_test: bool = False):
         traces_to_add = []
-        data = self.load(stream_name=stream_name)
-        channel_names = [col for col in data.columns if col != self._time_column_name]
-        for stream_index in stream_indices:
-            trace = data[channel_names[stream_index]]
+        data = self.load()
+        for channel_name in channel_column_names:
+            if channel_name not in data.columns:
+                raise ValueError(f"Channel '{channel_name}' not found in '{self.source_data['file_path']}'.")
+            trace = data[channel_name]
             trace = trace[:100] if stub_test else trace
             traces_to_add.append(trace)
 
         traces = np.vstack(traces_to_add).T
         return traces
+
+    def add_to_nwbfile(
+        self,
+        nwbfile: NWBFile,
+        metadata: dict,
+        stub_test: bool = False,
+    ) -> None:
+
+        fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
+
+        for trace_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]:
+            fiber_photometry_series_name = trace_metadata["name"]
+            channel_column_names = trace_metadata["channel_column_names"]
+
+            parent_container = "processing/ophys"
+            if fiber_photometry_series_name == "fiber_photometry_response_series":
+                parent_container = "acquisition"
+
+            add_fiber_photometry_response_series(
+                traces=self._get_traces(channel_column_names=channel_column_names, stub_test=stub_test),
+                timestamps=self.get_timestamps(stub_test=stub_test),
+                nwbfile=nwbfile,
+                metadata=metadata,
+                fiber_photometry_series_name=fiber_photometry_series_name,
+                parent_container=parent_container,
+            )

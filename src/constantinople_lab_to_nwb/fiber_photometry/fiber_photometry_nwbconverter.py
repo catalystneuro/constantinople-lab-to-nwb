@@ -15,16 +15,8 @@ class FiberPhotometryNWBConverter(NWBConverter):
 
     data_interface_classes = dict(
         DeepLabCut=DeepLabCutInterface,
+        FiberPhotometryDoric=DoricFiberPhotometryInterface,
+        FiberPhotometryCsv=DoricCsvFiberPhotometryInterface,
         Video=VideoInterface,
         Behavior=BpodBehaviorInterface,
     )
-
-    def __init__(self, source_data: dict[str, dict], verbose: bool = True):
-        """Validate source_data against source_schema and initialize all data interfaces."""
-        fiber_photometry_source_data = source_data["FiberPhotometry"]
-        fiber_photometry_file_path = Path(fiber_photometry_source_data["file_path"])
-        if fiber_photometry_file_path.suffix == ".doric":
-            self.data_interface_classes["FiberPhotometry"] = DoricFiberPhotometryInterface
-        elif fiber_photometry_file_path.suffix == ".csv":
-            self.data_interface_classes["FiberPhotometry"] = DoricCsvFiberPhotometryInterface
-        super().__init__(source_data=source_data, verbose=verbose)
