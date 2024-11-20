@@ -1,6 +1,11 @@
 Behavior:
+  TimeIntervals:
+    name: processed_trials
+    description: Contains the processed trials.
+  # The metadata for the raw Bpod trials.
   TrialsTable:
     description: |
+      Contains the raw Bpod trials.
       LED illumination from the center port indicated that the animal could initiate a trial by poking its nose in that
       port - upon trial initiation the center LED turned off. While in the center port, rats needed to maintain center
       fixation for a duration drawn uniformly from [0.8, 1.2] seconds. During the fixation period, a tone played from
