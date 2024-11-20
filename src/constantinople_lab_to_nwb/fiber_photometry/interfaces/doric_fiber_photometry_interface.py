@@ -22,6 +22,7 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     ):
         super().__init__(file_path=file_path, verbose=verbose)
         self._timestamps = None
+        self._aligned_starting_time = None
         self._root_data_path = root_data_path
         data = self.load()
         if root_data_path not in data:
@@ -43,13 +44,16 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
             raise ValueError(f"Time column '{self._time_column_name}' not found in '{stream_name}'.")
         return channel_group[self._time_column_name][:]
 
-    def get_timestamps(self, stream_name=str, stub_test: bool = False) -> np.ndarray:
-        timestamps = (
-            self._timestamps if self._timestamps is not None else self.get_original_timestamps(stream_name=stream_name)
-        )
+    def get_timestamps(self, stream_name: str, stub_test: bool = False) -> np.ndarray:
+        original_timestamps = self.get_original_timestamps(stream_name=stream_name)
         if stub_test:
-            return timestamps[:100]
-        return timestamps
+            original_timestamps = original_timestamps[:100]
+        if self._aligned_starting_time is not None:
+            return original_timestamps + self._aligned_starting_time
+        return original_timestamps
+
+    def set_aligned_starting_time(self, aligned_starting_time: float) -> None:
+        self._aligned_starting_time = aligned_starting_time
 
     def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
         self._timestamps = np.array(aligned_timestamps)
