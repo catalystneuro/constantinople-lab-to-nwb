@@ -4,6 +4,7 @@ import numpy as np
 from ndx_fiber_photometry import FiberPhotometryTable, FiberPhotometry, FiberPhotometryResponseSeries
 from neuroconv.tools import get_module
 from neuroconv.tools.fiber_photometry import add_fiber_photometry_device
+from neuroconv.tools.hdmf import SliceableDataChunkIterator
 from pynwb import NWBFile
 
 
@@ -170,7 +171,7 @@ def add_fiber_photometry_response_series(
     fiber_photometry_response_series = FiberPhotometryResponseSeries(
         name=trace_metadata["name"],
         description=trace_metadata["description"],
-        data=traces,
+        data=SliceableDataChunkIterator(data=traces),
         unit=trace_metadata["unit"],
         fiber_photometry_table_region=fiber_photometry_table_region,
         timestamps=timestamps,
