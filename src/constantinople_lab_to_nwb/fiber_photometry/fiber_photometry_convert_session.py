@@ -13,6 +13,7 @@ from ndx_pose import PoseEstimation
 
 def session_to_nwb(
     raw_fiber_photometry_file_path: Union[str, Path],
+    fiber_photometry_metadata: dict,
     raw_behavior_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     dlc_file_path: Optional[Union[str, Path]] = None,
@@ -27,6 +28,8 @@ def session_to_nwb(
     ----------
     raw_fiber_photometry_file_path : Union[str, Path]
         Path to the raw fiber photometry file (.doric or .csv).
+    fiber_photometry_metadata : dict
+        The metadata for the fiber photometry experiment setup.
     raw_behavior_file_path : Union[str, Path]
         Path to the raw Bpod output (.mat file).
     nwbfile_path : Union[str, Path]
@@ -102,10 +105,7 @@ def session_to_nwb(
         tzinfo = tz.gettz("America/New_York")
         metadata["NWBFile"].update(session_start_time=session_start_time.replace(tzinfo=tzinfo))
 
-    # Update default metadata with the editable in the corresponding yaml file
-    editable_metadata_path = Path(__file__).parent / "metadata" / fiber_photometry_metadata_file_name
-    editable_metadata = load_dict_from_file(editable_metadata_path)
-    metadata = dict_deep_update(metadata, editable_metadata)
+    metadata = dict_deep_update(metadata, fiber_photometry_metadata)
 
     # Update behavior metadata
     behavior_metadata_path = Path(__file__).parent / "metadata" / "behavior_metadata.yaml"
@@ -127,6 +127,9 @@ if __name__ == "__main__":
     doric_fiber_photometry_file_path = Path(
         "/Volumes/T9/Constantinople/Preprocessed_data/J069/Raw/J069_ACh_20230809_HJJ_0002.doric"
     )
+    # Update default metadata with the editable in the corresponding yaml file
+    fiber_photometry_metadata_file_path = Path(__file__).parent / "metadata" / "doric_fiber_photometry_metadata.yaml"
+    fiber_photometry_metadata = load_dict_from_file(fiber_photometry_metadata_file_path)
 
     # The raw behavior data from Bpod (contains data for a single session)
     bpod_behavior_file_path = Path(
@@ -151,6 +154,7 @@ if __name__ == "__main__":
 
     session_to_nwb(
         raw_fiber_photometry_file_path=doric_fiber_photometry_file_path,
+        fiber_photometry_metadata=fiber_photometry_metadata,
         raw_behavior_file_path=bpod_behavior_file_path,
         nwbfile_path=nwbfile_path,
         dlc_file_path=dlc_file_path,
