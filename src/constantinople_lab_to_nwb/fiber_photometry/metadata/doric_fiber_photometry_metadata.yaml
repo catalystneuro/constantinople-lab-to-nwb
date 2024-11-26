@@ -25,39 +25,17 @@ Ophys:
         excitation_wavelength_in_nm: 0.0 # TBD
     Photodetectors: # Can't find any information in the referred papers
       - name: photodetector
-        description: TBD
+        # description: TBD
         manufacturer: Doric Lenses
-        model: TBD
+        # model: TBD
         detector_type: photodiode
         detected_wavelength_in_nm: 0.0 # TBD
         # gain: # TBD
-    BandOpticalFilters: # Can't find any information in the referred papers
-      - name: emission_filter
-        description: TBD
-        manufacturer: Doric Lenses
-        model: TBD
-        center_wavelength_in_nm: 0.0 # TBD
-        bandwidth_in_nm: 0.0 # TBD
-        filter_type: Bandpass
-      - name: excitation_filter
-        description: TBD
-        manufacturer: Doric Lenses
-        model: TBD
-        center_wavelength_in_nm: 0.0 # TBD
-        bandwidth_in_nm: 0.0 # TBD
-        filter_type: Bandpass
-      - name: isosbestic_excitation_filter
-        description: TBD
-        manufacturer: Doric Lenses
-        model: TBD
-        center_wavelength_in_nm: 0.0 # TBD
-        bandwidth_in_nm: 0.0 # TBD
-        filter_type: Bandpass
     DichroicMirrors: # Can't find any information in the referred papers
       - name: dichroic_mirror
-        description: TBD
+        # description: TBD
         manufacturer: Doric Lenses
-        model: TBD
+        # model: TBD
     Indicators:
       - name: grab_da
         description: "To measure dopamine activity, AAV9-hsyn-GRAB DA2h (AddGene #140554) was injected into the NAcc."
@@ -82,8 +60,6 @@ Ophys:
           optical_fiber: optical_fiber
           excitation_source: excitation_source_isosbestic_control
           photodetector: photodetector
-          excitation_filter: isosbestic_excitation_filter
-          emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
         - name: 1
           location: NAcc
@@ -93,8 +69,6 @@ Ophys:
           optical_fiber: optical_fiber
           excitation_source: excitation_source
           photodetector: photodetector
-          excitation_filter: excitation_filter
-          emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
     FiberPhotometryResponseSeries:
       - name: fiber_photometry_response_series
