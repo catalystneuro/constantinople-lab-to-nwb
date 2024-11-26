@@ -172,7 +172,7 @@ def add_fiber_photometry_response_series(
         name=trace_metadata["name"],
         description=trace_metadata["description"],
         data=SliceableDataChunkIterator(data=traces),
-        unit=trace_metadata["unit"],
+        unit="n.a.",
         fiber_photometry_table_region=fiber_photometry_table_region,
         timestamps=timestamps,
     )
