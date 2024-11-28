@@ -157,3 +157,35 @@ We are using this computed time shift to shift the ephys timestamps.
 The following UML diagram shows the mapping of source data to NWB.
 
 ![nwb mapping](schierek_embargo_2024_uml.png)
+
+## OpenEphys XML Channel Fixer
+
+This utility helps fix OpenEphys `settings.xml` files when channels are accidentally dropped by the OpenEphys GUI.
+This issue can prevent proper data extraction using our extractors. The script identifies missing AP channels and adds
+them back to the XML configuration with the correct electrode positions.
+
+
+### Usage
+
+```python
+from constantinople_to_nwb.utils import fix_settings_xml_missing_channels
+import probeinterface
+from pathlib import Path
+
+# Path to the settings.xml file
+settings_path = Path("/path/to/your/Ephys Data/E003_2022-08-22_14-56-16/Record Node 103/settings.xml")
+
+# Fix the XML file
+modified_path = fix_settings_xml_missing_channels(
+    settings_xml_file_path=settings_path,
+    # Optional: specify AP stream name to verify the file can be read with probeinterface
+    stream_name="Record Node 103#Neuropix-PXI-100.0"
+)
+
+# Verify the channel configuration has been updated successfully
+ap_stream_name = "Record Node 103#Neuropix-PXI-100.0"  # The name of the AP recording stream
+probe = probeinterface.read_openephys(
+  settings_file=settings_path, stream_name=ap_stream_name
+)
+assert len(probe.contact_ids) == 384
+```
