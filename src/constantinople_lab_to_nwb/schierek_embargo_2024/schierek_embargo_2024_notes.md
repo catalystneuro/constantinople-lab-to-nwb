@@ -43,6 +43,8 @@ The script:
 3) Converts location fields from MATLAB data types (cell arrays, strings) to character arrays to ensure compatibility with Python
 4) Preserves the original 'S' structure while saving the modified data ('SU' and 'S') back to the .mat file
 
+Run this script in MATLAB to process all ephys .mat data files **before** converting to NWB.
+
 ```matlab
 % MATLAB script to process all .mat files in a specified directory,
 % checking for 'SU' structure and converting 'location' to a plain string if it exists
