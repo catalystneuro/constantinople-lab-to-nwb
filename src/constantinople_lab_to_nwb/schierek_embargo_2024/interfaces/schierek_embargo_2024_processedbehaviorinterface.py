@@ -107,7 +107,7 @@ class SchierekEmbargo2024ProcessedBehaviorInterface(BaseDataInterface):
             if column in data:
                 data[column] = list(np.array(data[column]).astype(bool))
 
-        columns_to_add = data.keys()
+        columns_to_add = list(data.keys())
         if column_name_mapping is not None:
             columns_to_add = [column for column in column_name_mapping.keys() if column in data.keys()]
 
