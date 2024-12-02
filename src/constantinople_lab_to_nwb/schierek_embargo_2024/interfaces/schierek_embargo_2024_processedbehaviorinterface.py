@@ -111,6 +111,13 @@ class SchierekEmbargo2024ProcessedBehaviorInterface(BaseDataInterface):
         if column_name_mapping is not None:
             columns_to_add = [column for column in column_name_mapping.keys() if column in data.keys()]
 
+        assert (
+            self._center_port_column_name in data
+        ), f"'{self._center_port_column_name}' column must be present in the data to align the trials."
+        center_port_onset_times = [center_port_times[0] for center_port_times in data[self._center_port_column_name]]
+        center_port_offset_times = [center_port_times[1] for center_port_times in data[self._center_port_column_name]]
+
+        time_shift = 0.0
         if nwbfile.trials is None:
             assert trial_start_times is not None, "'trial_start_times' must be provided if trials table is not added."
             assert trial_stop_times is not None, "'trial_stop_times' must be provided if trials table is not added."
@@ -126,6 +133,8 @@ class SchierekEmbargo2024ProcessedBehaviorInterface(BaseDataInterface):
                 trial_start_times = trial_start_times[:num_trials]
                 trial_stop_times = trial_stop_times[:num_trials]
 
+            time_shift = trial_start_times[0] - center_port_onset_times[0]
+
         assert (
             len(trial_start_times) == num_trials
         ), f"Length of 'trial_start_times' ({len(trial_start_times)}) must match the number of trials ({num_trials})."
@@ -140,19 +149,17 @@ class SchierekEmbargo2024ProcessedBehaviorInterface(BaseDataInterface):
                 check_ragged=False,
             )
 
-        # break it into onset and offset time columns
-        if self._center_port_column_name in columns_to_add:
-            columns_to_add.remove(self._center_port_column_name)
-            trials_table.add_column(
-                name="center_poke_onset_time",
-                description="The time of center port LED on for each trial.",
-                data=[center_poke_times[0] for center_poke_times in data[self._center_port_column_name]],
-            )
-            trials_table.add_column(
-                name="center_poke_offset_time",
-                description="The time of center port LED off for each trial.",
-                data=[center_poke_times[1] for center_poke_times in data[self._center_port_column_name]],
-            )
+        # break 'Cled' into onset and offset time columns
+        trials_table.add_column(
+            name="center_port_onset_time",
+            description="The time of center port LED on for each trial.",
+            data=center_port_onset_times + time_shift,
+        )
+        trials_table.add_column(
+            name="center_port_offset_time",
+            description="The time of center port LED off for each trial.",
+            data=center_port_offset_times + time_shift,
+        )
 
         for column_name in columns_to_add:
             name = column_name_mapping.get(column_name, column_name) if column_name_mapping is not None else column_name
