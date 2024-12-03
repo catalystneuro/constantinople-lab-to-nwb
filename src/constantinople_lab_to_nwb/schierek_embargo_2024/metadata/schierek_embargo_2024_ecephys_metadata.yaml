@@ -3,8 +3,9 @@ Ecephys:
     - name: DeviceEcephys
       description: OpenEphys recording
   ElectrodeGroup:
-    - name: "0"
+    - name: ElectrodeGroup
       description: The electrode group on the Neuropixels probe.
+      location: LO
       device: DeviceEcephys
   electrical_series:
     name: electrical_series
