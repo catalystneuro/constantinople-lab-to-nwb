@@ -129,27 +129,77 @@ column_descriptions = dict(
 )
 ```
 
-### Temporal alignment
+### Session start time
 
-Align TTL signals to Raw Bpod trial times:
-Compute the time shift from raw Bpod trial start times to the aligned center port timestamps.
-The aligned center port times can be accessed from the processed behavior data using the `"Cled"` field.
+The session start time is the reference time for all timestamps in the NWB file. We are using `session_start_time` from the Bpod output. (The start time of the session in the Bpod data can be accessed from the "Info" struct, with "SessionDate" and "SessionStartTime_UTC" fields.)
+
+### Bpod trial start time
+
+We are extracting the trial start times from the Bpod output using the "TrialStartTimestamp" field.
 
 ```python
-from ndx_structured_behavior.utils import loadmat
+from pymatreader import read_mat
 
-bpod_data = loadmat("path/to/bpod_session.mat")["SessionData"] # should contain "SessionData" named struct
-S_struct_data = loadmat("path/to/processed_behavior.mat")["S"] # should contain "S" named struct
+bpod_data = read_mat("raw_Bpod/J076/DataFiles/J076_RWTautowait2_20231212_145250.mat")["SessionData"] # should contain "SessionData" named struct
 
 # The trial start times from the Bpod data
 bpod_trial_start_times = bpod_data['TrialStartTimestamp']
 
-# "Cled" field contains the aligned onset and offset times for each trial [2 x ntrials]
-center_port_aligned_onset_times = [center_port_times[0] for center_port_times in S_struct_data["Cled"]]
-time_shift = bpod_trial_start_times[0] - center_port_aligned_onset_times[0]
+bpod_trial_start_times[:7]
+>>> [19.988, 39.7154, 43.6313, 46.8732, 59.4011, 77.7451, 79.4653]
 ```
 
-We are using this computed time shift to shift the ephys timestamps.
+### NIDAQ trial start time
+
+The aligned trial start times can be accessed from the processed behavior data using the `"Cled"` field.
+
+```python
+from pymatreader import read_mat
+
+S_struct_data = read_mat("J076_2023-12-12.mat")["S"] # should contain "S" named struct
+# "Cled" field contains the aligned onset and offset times for each trial [2 x ntrials]
+center_port_onset_times = [center_port_times[0] for center_port_times in S_struct_data["Cled"]]
+center_port_offset_times = [center_port_times[1] for center_port_times in S_struct_data["Cled"]]
+
+center_port_onset_times[:7]
+>>> [48.57017236918037, 68.2978722016674, 72.2138230625031, 75.45578122765313, 87.98392024937102, 106.3281781420765, 108.04842315623304]
+```
+
+## Alignment
+
+We are aligning the starting time of the recording and sorting interfaces to the Bpod interface.
+
+We are computing the time shift from the Bpod trial start time to the NIDAQ trial start time.
+
+```python
+time_shift = bpod_trial_start_times[0] - center_port_onset_times[0]
+>>> -28.58217236918037
+```
+
+We are applying this time_shift to the timestamps for the raw recording as:
+
+```python
+from neuroconv.datainterfaces import OpenEphysRecordingInterface
+recording_folder_path = "J076_2023-12-12_14-52-04/Record Node 117"
+ap_stream_name = "Record Node 117#Neuropix-PXI-119.ProbeA-AP"
+recording_interface = OpenEphysRecordingInterface(recording_folder_path, ap_stream_name)
+
+unaligned_timestamps = recording_interface.get_timestamps()
+unaligned_timestamps[:7]
+>>> [29.74, 29.74003333, 29.74006667, 29.7401, 29.74013333, 29.74016667, 29.7402]
+
+aligned_timestamps = unaligned_timestamps + time_shift
+>>> [1.15782763, 1.15786096, 1.1578943 , 1.15792763, 1.15796096, 1.1579943 , 1.15802763]
+```
+
+1) When the time shift is negative and the first aligned timestamp of the recording trace is negative:
+- shift back bpod (from every column that has a timestamp they have to be shifted back)
+- shift back session start time
+- don't have to move recording nor the center_port_onset_times and center_port_offset_times
+2) When the time shift is negative and the first aligned timestamp of the recording trace is positive
+- we move the recording, center_port_onset_times and center_port_offset_times backward
+3) When time shift is positive
+- we move the recording, center_port_onset_times and center_port_offset_times forward
 
 
 ### Mapping to NWB
