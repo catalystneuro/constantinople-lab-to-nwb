@@ -33,9 +33,6 @@ def update_ephys_device_metadata_for_subject(
         raise ValueError(f"'ratname' column not found in {epys_registry_file_path}.")
     filtered_ephys_registry = ephys_registry[ephys_registry["ratname"] == subject_id]
 
-    metadata["Ecephys"]["ElectrodeGroup"][0].update(
-        description="The electrode group on the Neuropixels probe.",
-    )
     if not filtered_ephys_registry.empty:
         ap_value = filtered_ephys_registry["AP"].values[0]
         ml_value = filtered_ephys_registry["ML"].values[0]
@@ -123,7 +120,14 @@ def session_to_nwb(
 
     # Add Sorting
     source_data.update(dict(PhySorting=dict(folder_path=spike_sorting_folder_path)))
-    conversion_options.update(dict(PhySorting=dict(stub_test=False)))
+    conversion_options.update(
+        dict(
+            PhySorting=dict(
+                stub_test=False,
+                units_description="Units table with spike times from Kilosort 2.5 and manually curated using Phy.",
+            )
+        )
+    )
 
     # Add processed sorting output
     if processed_spike_sorting_file_path is not None:
@@ -142,7 +146,13 @@ def session_to_nwb(
                 ),
             )
         )
-        conversion_options.update(dict(ProcessedSorting=dict(write_as="processing", stub_test=False)))
+        conversion_options.update(
+            dict(
+                ProcessedSorting=dict(
+                    write_as="processing", stub_test=False, units_description="The curated single-units from Phy."
+                ),
+            ),
+        )
         conversion_options.update(
             dict(
                 ProcessedBehavior=dict(column_name_mapping=column_name_mapping, column_descriptions=column_descriptions)
@@ -201,6 +211,11 @@ def session_to_nwb(
     behavior_metadata_path = Path(__file__).parent / "metadata" / "schierek_embargo_2024_behavior_metadata.yaml"
     behavior_metadata = load_dict_from_file(behavior_metadata_path)
     metadata = dict_deep_update(metadata, behavior_metadata)
+
+    # Update ecephys metadata
+    ephys_metadata_path = Path(__file__).parent / "metadata" / "schierek_embargo_2024_ecephys_metadata.yaml"
+    ephys_metadata = load_dict_from_file(ephys_metadata_path)
+    metadata = dict_deep_update(metadata, ephys_metadata)
 
     if ephys_registry_file_path is not None:
         metadata = update_ephys_device_metadata_for_subject(
@@ -308,7 +323,7 @@ if __name__ == "__main__":
     # Ephys registry file path (constains metadata for the neuropixels probe)
     ephys_registry_file_path = "/Volumes/T9/Constantinople/Ephys Data/Ephys_registry.mat"
 
-    stub_test = False
+    stub_test = True
     overwrite = True
 
     # Get subject metadata from rat registry
