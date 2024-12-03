@@ -71,21 +71,15 @@ Ophys:
           photodetector: photodetector
           dichroic_mirror: dichroic_mirror
     FiberPhotometryResponseSeries:
-      - name: fiber_photometry_response_series
-        description: The raw fluorescence signal # TBD
+      - name: raw_fiber_photometry_signal
+        description: The raw fiber photometry signal from Doric acquisition system before demodulation. # TBD
         stream_names: ["AnalogIn/AIN01", "AnalogIn/AIN02"]
         unit: a.u.
-        fiber_photometry_table_region: [0, 1] #[0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw fluorescence signal.
-      - name: fiber_photometry_response_series_isosbestic
-        description: The isosbestic signal # TBD
-        stream_names: ["AIN01xAOUT01-LockIn/Values", "AIN02xAOUT01-LockIn/Values"]
-        unit: a.u.
         fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the isosbestic signal.
-      - name: fiber_photometry_response_series_motion_corrected
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
+      - name: estimated_fiber_photometry_response_series
         description: The motion corrected signal # TBD
-        stream_names: ["AIN01xAOUT02-LockIn/Values", "AIN02xAOUT02-LockIn/Values"]
+        stream_names: ["AIN01xAOUT01-LockIn/Values", "AIN01xAOUT02-LockIn/Values", "AIN02xAOUT01-LockIn/Values", "AIN02xAOUT02-LockIn/Values"]
         unit: a.u.
-        fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
+        fiber_photometry_table_region: [0, 1, 2, 3]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
