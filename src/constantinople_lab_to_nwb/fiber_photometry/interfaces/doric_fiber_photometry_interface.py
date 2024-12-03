@@ -87,17 +87,13 @@ class DoricFiberPhotometryInterface(BaseTemporalAlignmentInterface):
             # Get the timing information
             timestamps = self.get_timestamps(stream_name=stream_names[0], stub_test=stub_test)
 
-            parent_container = "processing/ophys"
-            if fiber_photometry_series_name == "fiber_photometry_response_series":
-                parent_container = "acquisition"
-
             add_fiber_photometry_response_series(
                 traces=traces,
                 timestamps=timestamps,
                 nwbfile=nwbfile,
                 metadata=metadata,
                 fiber_photometry_series_name=fiber_photometry_series_name,
-                parent_container=parent_container,
+                parent_container="acquisition",
             )
 
 
@@ -167,15 +163,11 @@ class DoricCsvFiberPhotometryInterface(BaseTemporalAlignmentInterface):
             fiber_photometry_series_name = trace_metadata["name"]
             channel_column_names = trace_metadata["channel_column_names"]
 
-            parent_container = "processing/ophys"
-            if fiber_photometry_series_name == "fiber_photometry_response_series":
-                parent_container = "acquisition"
-
             add_fiber_photometry_response_series(
                 traces=self._get_traces(channel_column_names=channel_column_names, stub_test=stub_test),
                 timestamps=self.get_timestamps(stub_test=stub_test),
                 nwbfile=nwbfile,
                 metadata=metadata,
                 fiber_photometry_series_name=fiber_photometry_series_name,
-                parent_container=parent_container,
+                parent_container="acquisition",
             )
