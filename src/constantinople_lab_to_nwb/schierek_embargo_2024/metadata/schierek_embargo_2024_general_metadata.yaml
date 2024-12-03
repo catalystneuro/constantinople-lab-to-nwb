@@ -26,6 +26,12 @@ NWBFile:
     blocks transitioning after 40 successfully completed trials.
   institution: NYU Center for Neural Science
   lab: Constantinople
+  keywords:
+    - decision making
+    - reinforcement learning
+    - hidden state inference
+    - extracellular electrophysiology
+    - single-unit activity
   experimenter:
     - Schiereck, Shannon
 Subject:
