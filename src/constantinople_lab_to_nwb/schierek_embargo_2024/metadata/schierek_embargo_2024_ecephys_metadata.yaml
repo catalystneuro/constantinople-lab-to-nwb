@@ -12,7 +12,7 @@ Ecephys:
     description: The raw acquisition traces from Neuropixels probe (384 channels, 30 kHz sampling rate) using Neuropix-PXI hardware and OpenEphys.
   lfp_electrical_series:
     name: lfp_electrical_series
-    description: The processed traces from the Neuropixels probe (384 channels, 1 kHz sampling rate) using Neuropix-PXI hardware and OpenEphys.
+    description: The processed traces from the Neuropixels probe (384 channels, 2.5 kHz sampling rate) using Neuropix-PXI hardware and OpenEphys.
   UnitProperties:
     - name: channel_depth_um
       description: The distance of the channel from the tip of the neuropixels probe in micrometers.
