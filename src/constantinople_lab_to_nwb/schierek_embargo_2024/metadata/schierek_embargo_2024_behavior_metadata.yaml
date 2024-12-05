@@ -276,6 +276,6 @@ Behavior:
       output_type: numeric
     OptoEvent:
       name: opto_event_type
-      description: The type of optogenetic event.
+      description: The type of optogenetic event. (1 = center port in, 2 = side port off, 3 = Reward or opt-out, 4 = stimulation on, 5 = delay)
       expression_type: integer
       output_type: numeric
