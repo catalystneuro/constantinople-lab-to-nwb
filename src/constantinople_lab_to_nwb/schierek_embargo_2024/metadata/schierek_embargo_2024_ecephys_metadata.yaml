@@ -1,0 +1,18 @@
+Ecephys:
+  Device:
+    - name: DeviceEcephys
+      description: OpenEphys recording
+  ElectrodeGroup:
+    - name: ElectrodeGroup
+      description: The electrode group on the Neuropixels probe.
+      location: LO
+      device: DeviceEcephys
+  electrical_series:
+    name: electrical_series
+    description: The raw acquisition traces from Neuropixels probe (384 channels, 30 kHz sampling rate) using Neuropix-PXI hardware and OpenEphys.
+  lfp_electrical_series:
+    name: lfp_electrical_series
+    description: The processed traces from the Neuropixels probe (384 channels, 1 kHz sampling rate) using Neuropix-PXI hardware and OpenEphys.
+  UnitProperties:
+    - name: channel_depth_um
+      description: The distance of the channel from the tip of the neuropixels probe in micrometers.

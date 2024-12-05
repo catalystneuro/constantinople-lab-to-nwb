@@ -1,0 +1,38 @@
+NWBFile:
+#  related_publications:
+#    https://doi.org/### or link to APA or MLA citation of the publication
+  experiment_description: |
+    This dataset contains in vivo extracellular electrophysiology recordings from rats performing a value-based
+    decision-making task. Neural data were acquired using Neuropixels probes (384 channels, 30 kHz sampling rate) with
+    Neuropix-PXI hardware and OpenEphys, and preprocessed using Kilosort 2.5 with manual curation in Phy.
+    Trials were initiated by a nose-poke in a lit center port and required maintaining a center fixation for 0.8 to 1.2
+    seconds, during which a tone indicated the possible reward size. A subsequent side LED indicated the potential
+    reward location, followed by a delay period drawn from an exponential distribution (mean = 2.5 s). Rats could opt
+    out at any time by poking the unlit port, restarting the trial. Catch trials, where the delay period only ended if
+    the rat opted out, constituted 15-25% of the trials. Rats received penalties for premature fixation breaks.
+    Additionally, the tasks introduced semi-observable hidden states by varying reward statistics across uncued blocks
+    (high, low, and mixed), structured hierarchically, with blocks transitioning after 40 successfully completed trials.
+  session_description: |
+    This session contains extracellular electrophysiology acquired from 384 channels at 30 kHz using Neuropix-PXI hardware and OpenEphys.
+    The neural data were preprocessed using Kilosort 2.5. After preprocessing, clusters that were identified from Kilosort as single-units
+    were manually inspected using Phy. The behavioral tasks were conducted in a high-throughput facility where rats
+    were trained in increasingly complex protocols. Trials were initiated by a nose-poke in a lit center port and
+    required maintaining a center fixation for 0.8 to 1.2 seconds, during which a tone indicated the possible reward
+    size. A subsequent side LED indicated the potential reward location, followed by a delay period drawn from an
+    exponential distribution (mean = 2.5 s). Rats could opt out at any time by poking the unlit port, restarting the
+    trial. Catch trials, where the delay period only ended if the rat opted out, constituted 15-25% of the trials.
+    Rats received penalties for premature fixation breaks. Additionally, the tasks introduced semi-observable hidden
+    states by varying reward statistics across uncued blocks (high, low, and mixed), structured hierarchically, with
+    blocks transitioning after 40 successfully completed trials.
+  institution: NYU Center for Neural Science
+  lab: Constantinople
+  keywords:
+    - decision making
+    - reinforcement learning
+    - hidden state inference
+    - extracellular electrophysiology
+    - single-unit activity
+  experimenter:
+    - Schiereck, Shannon
+Subject:
+  species: Rattus norvegicus
