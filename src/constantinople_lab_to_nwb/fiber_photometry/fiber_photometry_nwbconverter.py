@@ -7,6 +7,7 @@ from constantinople_lab_to_nwb.fiber_photometry.interfaces import (
     DoricFiberPhotometryInterface,
     DoricCsvFiberPhotometryInterface,
 )
+from constantinople_lab_to_nwb.general_interfaces import BpodBehaviorInterface
 
 
 class FiberPhotometryNWBConverter(NWBConverter):
@@ -17,4 +18,5 @@ class FiberPhotometryNWBConverter(NWBConverter):
         FiberPhotometryDoric=DoricFiberPhotometryInterface,
         FiberPhotometryCsv=DoricCsvFiberPhotometryInterface,
         Video=VideoInterface,
+        Behavior=BpodBehaviorInterface,
     )
