@@ -62,16 +62,18 @@ def update_ephys_device_metadata_for_subject(
 
 def session_to_nwb(
     openephys_recording_folder_path: Union[str, Path],
-    spike_sorting_folder_path: Union[str, Path],
+    ap_stream_name: str,
+    lfp_stream_name: str,
     processed_spike_sorting_file_path: Union[str, Path],
     raw_behavior_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
+    subject_metadata: dict,
     column_name_mapping: Optional[dict] = None,
     column_descriptions: Optional[dict] = None,
     ephys_registry_file_path: Optional[Union[str, Path]] = None,
-    subject_metadata: Optional[dict] = None,
     stub_test: bool = False,
     overwrite: bool = False,
+    verbose: bool = True,
 ):
     """
     Convert a session of data to NWB format.
@@ -80,35 +82,64 @@ def session_to_nwb(
     ----------
     openephys_recording_folder_path : str or Path
         The path to the OpenEphys recording folder.
-    spike_sorting_folder_path : str or Path
-        The path to the Phy sorting folder.
+    ap_stream_name: str
+        The name of the recording stream containing the raw data.
+    lfp_stream_name: str, optional
+        The name of the recording stream containing the processed data.
     processed_spike_sorting_file_path : str or Path
         The path to the processed spike sorting file (.mat).
+    raw_behavior_file_path : str or Path
+        The path to the Bpot output file (.mat).
     nwbfile_path : str or Path
         The path to the NWB file to write.
+    column_name_mapping : dict
+        A dictionary to rename the columns in the processed behavior data to more descriptive column names.
+    column_descriptions : dict
+        A dictionary to add descriptions to the columns in the processed behavior data.
     ephys_registry_file_path: str or Path
         The path to the ephys registry (.mat) file.
-    subject_metadata: dict, optional
-        Additional subject metadata. e.g. dict(
+    subject_metadata: dict
+        Additional subject metadata. e.g. dict(date_of_birth="2020-05-27T00:00:00+02:00", sex="F")
     stub_test : bool, default: False
         Whether to run a stub test conversion.
     overwrite : bool, default: False
         Whether to overwrite an existing NWB file.
+    verbose : bool, default: True
+        Whether to print verbose output.
     """
     recording_folder_path = Path(openephys_recording_folder_path)
+
+    record_node_name = recording_folder_path.stem
+    if "Record Node" not in record_node_name:
+        raise ValueError(
+            f"The recording folder path should contain the Record Node number. E.g. '{recording_folder_path}/Record Node 117'."
+        )
 
     source_data = dict()
     conversion_options = dict()
 
     # Add Recording
-    stream_names = OpenEphysRecordingInterface.get_stream_names(folder_path=openephys_recording_folder_path)
-    stream_name_raw = [stream_name for stream_name in stream_names if "AP" in stream_name][0]
-    stream_name_lfp = [stream_name for stream_name in stream_names if "LFP" in stream_name][0]
+    stream_names = OpenEphysRecordingInterface.get_stream_names(folder_path=recording_folder_path)
+    raw_stream_names = [stream_name for stream_name in stream_names if ap_stream_name in stream_name]
+    if len(raw_stream_names) != 1:
+        raise ValueError(f"Could not find '{ap_stream_name}' recording stream in {stream_names}. ")
+    raw_stream_name = raw_stream_names[0]
+
+    lfp_stream_names = [stream_name for stream_name in stream_names if lfp_stream_name in stream_name]
+    if len(lfp_stream_names) != 1:
+        raise ValueError(f"Could not find '{lfp_stream_name}' stream in {stream_names}. ")
+    processed_stream_name = lfp_stream_names[0]
 
     source_data.update(
         dict(
-            RecordingAP=dict(folder_path=openephys_recording_folder_path, stream_name=stream_name_raw),
-            RecordingLFP=dict(folder_path=openephys_recording_folder_path, stream_name=stream_name_lfp),
+            RecordingAP=dict(
+                folder_path=str(recording_folder_path), stream_name=raw_stream_name, es_key="electrical_series"
+            ),
+            RecordingLFP=dict(
+                folder_path=str(recording_folder_path),
+                stream_name=processed_stream_name,
+                es_key="lfp_electrical_series",
+            ),
         ),
     )
     conversion_options.update(
@@ -119,7 +150,13 @@ def session_to_nwb(
     )
 
     # Add Sorting
-    source_data.update(dict(PhySorting=dict(folder_path=spike_sorting_folder_path)))
+    ap_folder_name = raw_stream_name.replace(f"{record_node_name}#", "")
+    phy_sorting_folder_path = recording_folder_path / f"experiment1/recording1/continuous/{ap_folder_name}"
+    if not phy_sorting_folder_path.exists():
+        raise FileNotFoundError(
+            f"The folder '{phy_sorting_folder_path}' where the Phy output should be located does not exist."
+        )
+    source_data.update(dict(PhySorting=dict(folder_path=phy_sorting_folder_path)))
     conversion_options.update(
         dict(
             PhySorting=dict(
@@ -130,41 +167,35 @@ def session_to_nwb(
     )
 
     # Add processed sorting output
-    if processed_spike_sorting_file_path is not None:
-        # Retrieve the sampling frequency from the raw data
-        recording_extractor = OpenEphysBinaryRecordingExtractor(
-            folder_path=openephys_recording_folder_path, stream_name=stream_name_raw
-        )
-        sampling_frequency = recording_extractor.get_sampling_frequency()
-        source_data.update(
-            dict(
-                ProcessedSorting=dict(
-                    file_path=processed_spike_sorting_file_path, sampling_frequency=sampling_frequency
-                ),
-                ProcessedBehavior=dict(
-                    file_path=processed_spike_sorting_file_path,
-                ),
-            )
-        )
-        conversion_options.update(
-            dict(
-                ProcessedSorting=dict(
-                    write_as="processing", stub_test=False, units_description="The curated single-units from Phy."
-                ),
+    # The processed spike sorting file also contains the processed trials data.
+    recording_extractor = OpenEphysBinaryRecordingExtractor(
+        folder_path=openephys_recording_folder_path,
+        stream_name=raw_stream_name,
+    )
+    sampling_frequency = recording_extractor.get_sampling_frequency()
+    source_data.update(
+        dict(
+            ProcessedSorting=dict(file_path=processed_spike_sorting_file_path, sampling_frequency=sampling_frequency),
+            ProcessedBehavior=dict(
+                file_path=processed_spike_sorting_file_path,
             ),
         )
-        conversion_options.update(
-            dict(
-                ProcessedBehavior=dict(column_name_mapping=column_name_mapping, column_descriptions=column_descriptions)
-            )
-        )
+    )
+    conversion_options.update(
+        dict(
+            ProcessedSorting=dict(
+                write_as="processing", stub_test=False, units_description="The curated single-units from Phy."
+            ),
+        ),
+    )
+    conversion_options.update(
+        dict(ProcessedBehavior=dict(column_name_mapping=column_name_mapping, column_descriptions=column_descriptions))
+    )
 
     # Add Behavior
     source_data.update(dict(RawBehavior=dict(file_path=raw_behavior_file_path)))
     # Exclude some task arguments from the trials table that are the same for all trials
     task_arguments_to_exclude = [
-        "BlockLengthTest",
-        "BlockLengthAd",
         "TrialsStage2",
         "TrialsStage3",
         "TrialsStage4",
@@ -190,7 +221,7 @@ def session_to_nwb(
             probe_properties=["contact_shapes", "width"],
         )
 
-    converter = SchierekEmbargo2024NWBConverter(**converter_kwargs, verbose=True)
+    converter = SchierekEmbargo2024NWBConverter(**converter_kwargs, verbose=verbose)
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
@@ -250,10 +281,14 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
-    openephys_recording_folder_path = Path("/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12_14-52-04/")
-    phy_sorting_folder_path = (
-        openephys_recording_folder_path / "Record Node 117/experiment1/recording1/continuous/Neuropix-PXI-119.ProbeA-AP"
+    openephys_recording_folder_path = Path(
+        "/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12_14-52-04/Record Node 117"
     )
+    # The name of the raw recording stream
+    ap_stream_name = "Neuropix-PXI-119.ProbeA-AP"
+    # The name of the LFP stream
+    lfp_stream_name = "Neuropix-PXI-119.ProbeA-LFP"
+
     processed_sorting_file_path = Path("/Volumes/T9/Constantinople/Ephys Data/J076_2023-12-12.mat")
     bpod_file_path = Path("/Volumes/T9/Constantinople/raw_Bpod/J076/DataFiles/J076_RWTautowait2_20231212_145250.mat")
 
@@ -316,18 +351,19 @@ if __name__ == "__main__":
         wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
     )
 
-    nwbfile_path = Path("/Users/weian/data/demo/J076_2023-12-12_14-52-04.nwb")
+    nwbfile_path = Path("/Users/weian/data/001264/sub-J076_ses-2023-12-12.nwb")
     if not nwbfile_path.parent.exists():
         os.makedirs(nwbfile_path.parent, exist_ok=True)
 
     # Ephys registry file path (constains metadata for the neuropixels probe)
     ephys_registry_file_path = "/Volumes/T9/Constantinople/Ephys Data/Ephys_registry.mat"
 
-    stub_test = True
+    stub_test = False
     overwrite = True
 
     # Get subject metadata from rat registry
     rat_registry_folder_path = "/Volumes/T9/Constantinople/Rat_info"
+    # Query for subject_id and date of experiment.
     subject_metadata = get_subject_metadata_from_rat_info_folder(
         folder_path=rat_registry_folder_path,
         subject_id="J076",
@@ -336,7 +372,8 @@ if __name__ == "__main__":
 
     session_to_nwb(
         openephys_recording_folder_path=openephys_recording_folder_path,
-        spike_sorting_folder_path=phy_sorting_folder_path,
+        ap_stream_name=ap_stream_name,
+        lfp_stream_name=lfp_stream_name,
         processed_spike_sorting_file_path=processed_sorting_file_path,
         raw_behavior_file_path=bpod_file_path,
         column_name_mapping=column_name_mapping,
