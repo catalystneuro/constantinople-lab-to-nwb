@@ -4,12 +4,60 @@ import os
 from pathlib import Path
 from typing import Union, Optional
 
+import numpy as np
+import pandas as pd
 from dateutil import tz
 from neuroconv.datainterfaces import OpenEphysRecordingInterface
 from neuroconv.utils import load_dict_from_file, dict_deep_update
+from nwbinspector import inspect_nwbfile, save_report, format_messages
+from pymatreader import read_mat
 from spikeinterface.extractors import OpenEphysBinaryRecordingExtractor
 
+from constantinople_lab_to_nwb.utils import get_subject_metadata_from_rat_info_folder
 from constantinople_lab_to_nwb.schierek_embargo_2024 import SchierekEmbargo2024NWBConverter
+
+
+def update_ephys_device_metadata_for_subject(
+    epys_registry_file_path: Union[str, Path],
+    subject_id: str,
+    metadata: dict,
+):
+    if not os.path.exists(epys_registry_file_path):
+        raise FileNotFoundError(f"File not found: {epys_registry_file_path}")
+
+    ephys_registry = read_mat(epys_registry_file_path)
+    if "Registry" not in ephys_registry:
+        raise ValueError(f"'Registry' key not found in {epys_registry_file_path}.")
+    ephys_registry = pd.DataFrame(ephys_registry["Registry"])
+    if "ratname" not in ephys_registry.columns:
+        raise ValueError(f"'ratname' column not found in {epys_registry_file_path}.")
+    filtered_ephys_registry = ephys_registry[ephys_registry["ratname"] == subject_id]
+
+    if not filtered_ephys_registry.empty:
+        ap_value = filtered_ephys_registry["AP"].values[0]
+        ml_value = filtered_ephys_registry["ML"].values[0]
+        dv_value = filtered_ephys_registry["DV"].values[0]
+
+        coordinates_in_mm = f"AP: {ap_value} mm, ML: {ml_value} mm"
+        if not np.isnan(dv_value):
+            coordinates_in_mm += f", DV: {dv_value}."
+
+        recording_hemisphere = filtered_ephys_registry["recordinghemisphere"].values[0]
+        recording_hemisphere = dict(L="left", R="right").get(recording_hemisphere, recording_hemisphere)
+        probe_type = filtered_ephys_registry["probetype"].values[0]
+
+        brain_region = filtered_ephys_registry["recordingsite"].values[0]
+        description = f"The {probe_type} probe implanted in {brain_region} brain region, at {coordinates_in_mm}, {recording_hemisphere} hemisphere."
+        if "distance2LO" in filtered_ephys_registry.columns:
+            distance_to_LO_um = filtered_ephys_registry["distance2LO"].values[0]
+            # TODO: confirm unit
+            description += f" Distance to LO: {distance_to_LO_um} μm."
+
+        metadata["Ecephys"]["Device"][0].update(
+            description=description,
+        )
+
+    return metadata
 
 
 def session_to_nwb(
@@ -20,6 +68,8 @@ def session_to_nwb(
     nwbfile_path: Union[str, Path],
     column_name_mapping: Optional[dict] = None,
     column_descriptions: Optional[dict] = None,
+    ephys_registry_file_path: Optional[Union[str, Path]] = None,
+    subject_metadata: Optional[dict] = None,
     stub_test: bool = False,
     overwrite: bool = False,
 ):
@@ -36,6 +86,10 @@ def session_to_nwb(
         The path to the processed spike sorting file (.mat).
     nwbfile_path : str or Path
         The path to the NWB file to write.
+    ephys_registry_file_path: str or Path
+        The path to the ephys registry (.mat) file.
+    subject_metadata: dict, optional
+        Additional subject metadata. e.g. dict(
     stub_test : bool, default: False
         Whether to run a stub test conversion.
     overwrite : bool, default: False
@@ -66,7 +120,14 @@ def session_to_nwb(
 
     # Add Sorting
     source_data.update(dict(PhySorting=dict(folder_path=spike_sorting_folder_path)))
-    conversion_options.update(dict(PhySorting=dict(stub_test=False)))
+    conversion_options.update(
+        dict(
+            PhySorting=dict(
+                stub_test=False,
+                units_description="Units table with spike times from Kilosort 2.5 and manually curated using Phy.",
+            )
+        )
+    )
 
     # Add processed sorting output
     if processed_spike_sorting_file_path is not None:
@@ -85,7 +146,13 @@ def session_to_nwb(
                 ),
             )
         )
-        conversion_options.update(dict(ProcessedSorting=dict(write_as="processing", stub_test=False)))
+        conversion_options.update(
+            dict(
+                ProcessedSorting=dict(
+                    write_as="processing", stub_test=False, units_description="The curated single-units from Phy."
+                ),
+            ),
+        )
         conversion_options.update(
             dict(
                 ProcessedBehavior=dict(column_name_mapping=column_name_mapping, column_descriptions=column_descriptions)
@@ -136,7 +203,7 @@ def session_to_nwb(
     )
 
     # Update default metadata with the editable in the corresponding yaml file
-    editable_metadata_path = Path(__file__).parent / "schierek_embargo_2024_metadata.yaml"
+    editable_metadata_path = Path(__file__).parent / "metadata" / "schierek_embargo_2024_general_metadata.yaml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
@@ -145,7 +212,20 @@ def session_to_nwb(
     behavior_metadata = load_dict_from_file(behavior_metadata_path)
     metadata = dict_deep_update(metadata, behavior_metadata)
 
-    metadata["Subject"].update(subject_id=subject_id)
+    # Update ecephys metadata
+    ephys_metadata_path = Path(__file__).parent / "metadata" / "schierek_embargo_2024_ecephys_metadata.yaml"
+    ephys_metadata = load_dict_from_file(ephys_metadata_path)
+    metadata = dict_deep_update(metadata, ephys_metadata)
+
+    if ephys_registry_file_path is not None:
+        metadata = update_ephys_device_metadata_for_subject(
+            epys_registry_file_path=ephys_registry_file_path,
+            subject_id=subject_id,
+            metadata=metadata,
+        )
+
+    if subject_metadata is not None:
+        metadata["Subject"].update(subject_id=subject_id, **subject_metadata)
 
     # Run conversion
     converter.run_conversion(
@@ -154,6 +234,17 @@ def session_to_nwb(
         conversion_options=conversion_options,
         overwrite=overwrite,
     )
+
+    results = list(inspect_nwbfile(nwbfile_path=nwbfile_path))
+    report_path = Path(nwbfile_path).parent / f"{subject_id}-{session_id}_nwbinspector_result.txt"
+    if not report_path.exists():
+        save_report(
+            report_file_path=report_path,
+            formatted_messages=format_messages(
+                results,
+                levels=["importance", "file_path"],
+            ),
+        )
 
 
 if __name__ == "__main__":
@@ -225,12 +316,23 @@ if __name__ == "__main__":
         wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
     )
 
-    nwbfile_path = Path("/Volumes/T9/Constantinople/nwbfiles/J076_2023-12-12_14-52-04.nwb")
+    nwbfile_path = Path("/Users/weian/data/demo/J076_2023-12-12_14-52-04.nwb")
     if not nwbfile_path.parent.exists():
         os.makedirs(nwbfile_path.parent, exist_ok=True)
 
+    # Ephys registry file path (constains metadata for the neuropixels probe)
+    ephys_registry_file_path = "/Volumes/T9/Constantinople/Ephys Data/Ephys_registry.mat"
+
     stub_test = True
     overwrite = True
+
+    # Get subject metadata from rat registry
+    rat_registry_folder_path = "/Volumes/T9/Constantinople/Rat_info"
+    subject_metadata = get_subject_metadata_from_rat_info_folder(
+        folder_path=rat_registry_folder_path,
+        subject_id="J076",
+        date="2023-12-12",
+    )
 
     session_to_nwb(
         openephys_recording_folder_path=openephys_recording_folder_path,
@@ -239,6 +341,8 @@ if __name__ == "__main__":
         raw_behavior_file_path=bpod_file_path,
         column_name_mapping=column_name_mapping,
         column_descriptions=column_descriptions,
+        ephys_registry_file_path=ephys_registry_file_path,
+        subject_metadata=subject_metadata,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
         overwrite=overwrite,
