@@ -205,7 +205,7 @@ doric_trial_start_times[:7]
 
 ## Alignment
 
-We are aligning the starting time of the fiber photometry, video and DLC interfaces to the Bpod interface.
+We are aligning the starting time of the fiber photometry (Doric), video and DLC interfaces to the Bpod interface.
 
 We are computing the time shift from the Bpod trial start time to the Doric trial start time.
 
