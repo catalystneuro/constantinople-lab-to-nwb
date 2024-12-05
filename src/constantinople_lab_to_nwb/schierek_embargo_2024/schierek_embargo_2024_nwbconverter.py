@@ -115,6 +115,10 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
     def get_metadata(self):
         metadata = super().get_metadata()
 
+        # Explicity set session_start_time to Bpod start time
+        session_start_time = self.data_interface_objects["RawBehavior"].get_metadata()["NWBFile"]["session_start_time"]
+        metadata["NWBFile"].update(session_start_time=session_start_time)
+
         if "Electrodes" not in metadata["Ecephys"]:
             metadata["Ecephys"]["Electrodes"] = []
 

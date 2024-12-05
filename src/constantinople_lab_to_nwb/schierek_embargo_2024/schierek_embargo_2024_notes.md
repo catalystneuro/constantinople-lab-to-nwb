@@ -31,6 +31,73 @@ The "SU" struct is a cell array of all individual cells simultaneously recorded 
   - `AP` – anterior/posterior neuropixels probe location relative to Bregma
   - `ML` – medial/lateral neuropixels probe location relative to Bregma
 
+#### MATLAB `SU` `location` field converter
+
+The "location" field in some of the processed ephys data files (e.g. `E003_2022-08-01.mat`) when reading in Python shows up as a `MatlabOpaque` object.
+To make the location field readable in Python, please use the `schierek_embargo_2024/mat_utils/convertSULocationToString.m` utility script to convert the location field to a string.
+
+This script processes .mat files containing the location field within `SU` structures to ensure compatibility with Python.
+The script:
+1) Recursively searches through a specified directory for .mat files,
+2) Loads each file and processes the 'SU' struct if present (skipping files without 'SU' struct)
+3) Converts location fields from MATLAB data types (cell arrays, strings) to character arrays to ensure compatibility with Python
+4) Preserves the original 'S' structure while saving the modified data ('SU' and 'S') back to the .mat file
+
+Run this script in MATLAB to process all ephys .mat data files **before** converting to NWB.
+
+```matlab
+% MATLAB script to process all .mat files in a specified directory,
+% checking for 'SU' structure and converting 'location' to a plain string if it exists
+
+% Specify the path to your directory containing the .mat files
+folderPath = '/Volumes/T9/Constantinople/Ephys Data/'; % Replace with your actual folder path
+
+% Get a list of all .mat files in the directory
+files = dir(fullfile(folderPath, '**', '*.mat'));
+matFiles = fullfile({files.folder}, {files.name});
+
+% Loop through each .mat file in the directory
+for k = 1:length(matFiles)
+    matFilePath = fullfile(folderPath, matFiles(k));
+    matFilePath = char(matFiles{k});  % Ensure it is a character array
+    % Load the .mat file
+    try
+        data = load(matFilePath);
+    catch ME
+        % Handle the error
+        disp(['An error occurred: ', ME.message]);
+        continue
+    end
+
+    % Check if 'SU' structure exists in the loaded data
+    if isfield(data, 'SU')
+        SU = data.SU;  % Get the SU structure
+        numUnits = length(SU);
+
+        % Iterate over each unit in the SU structure
+        for i = 1:numUnits
+            if isfield(SU{i}, 'location')
+                % Check and convert location if it is a cell array
+                if iscell(SU{i}.location) && ~isempty(SU{i}.location)
+                    locationStr = SU{i}.location{1}; % Extract first element if it is a cell
+                else
+                    locationStr = SU{i}.location;
+                end
+                SU{i}.location = locationStr;
+            end
+        end
+
+        S = data.S;
+        save(matFilePath, 'S', 'SU');
+        disp(['Processed and saved: ', matFilePath]);
+            % Clear variables to free up workspace
+        clear SU;
+        clear S;
+        clear data;
+    end
+end
+```
+
 ### Processed behavior data
 
 The processed behavior data is stored in custom .mat files (e.g. `J076_2023-12-12.mat`) with the following fields:
@@ -129,27 +196,80 @@ column_descriptions = dict(
 )
 ```
 
-### Temporal alignment
+### Session start time
 
-Align TTL signals to Raw Bpod trial times:
-Compute the time shift from raw Bpod trial start times to the aligned center port timestamps.
-The aligned center port times can be accessed from the processed behavior data using the `"Cled"` field.
+The session start time is the reference time for all timestamps in the NWB file. We are using `session_start_time` from the Bpod output. (The start time of the session in the Bpod data can be accessed from the "Info" struct, with "SessionDate" and "SessionStartTime_UTC" fields.)
+
+### Bpod trial start time
+
+We are extracting the trial start times from the Bpod output using the "TrialStartTimestamp" field.
 
 ```python
-from ndx_structured_behavior.utils import loadmat
+from pymatreader import read_mat
 
-bpod_data = loadmat("path/to/bpod_session.mat")["SessionData"] # should contain "SessionData" named struct
-S_struct_data = loadmat("path/to/processed_behavior.mat")["S"] # should contain "S" named struct
+bpod_data = read_mat("raw_Bpod/J076/DataFiles/J076_RWTautowait2_20231212_145250.mat")["SessionData"] # should contain "SessionData" named struct
 
 # The trial start times from the Bpod data
 bpod_trial_start_times = bpod_data['TrialStartTimestamp']
 
-# "Cled" field contains the aligned onset and offset times for each trial [2 x ntrials]
-center_port_aligned_onset_times = [center_port_times[0] for center_port_times in S_struct_data["Cled"]]
-time_shift = bpod_trial_start_times[0] - center_port_aligned_onset_times[0]
+bpod_trial_start_times[:7]
+>>> [19.988, 39.7154, 43.6313, 46.8732, 59.4011, 77.7451, 79.4653]
 ```
 
-We are using this computed time shift to shift the ephys timestamps.
+### NIDAQ trial start time
+
+The aligned trial start times can be accessed from the processed behavior data using the `"Cled"` field.
+
+```python
+from pymatreader import read_mat
+
+S_struct_data = read_mat("J076_2023-12-12.mat")["S"] # should contain "S" named struct
+# "Cled" field contains the aligned onset and offset times for each trial [2 x ntrials]
+center_port_onset_times = [center_port_times[0] for center_port_times in S_struct_data["Cled"]]
+center_port_offset_times = [center_port_times[1] for center_port_times in S_struct_data["Cled"]]
+
+center_port_onset_times[:7]
+>>> [48.57017236918037, 68.2978722016674, 72.2138230625031, 75.45578122765313, 87.98392024937102, 106.3281781420765, 108.04842315623304]
+```
+
+## Alignment
+
+We are aligning the starting time of the recording and sorting interfaces to the Bpod interface.
+
+We are computing the time shift from the Bpod trial start time to the NIDAQ trial start time.
+
+From a conceptual point of view, the trial start and the central port onset are equivalent: a trial starts when the first time the central port is on.
+
+
+```python
+time_shift = bpod_trial_start_times[0] - center_port_onset_times[0]
+>>> -28.58217236918037
+```
+
+We are applying this time_shift to the timestamps for the raw recording as:
+
+```python
+from neuroconv.datainterfaces import OpenEphysRecordingInterface
+recording_folder_path = "J076_2023-12-12_14-52-04/Record Node 117"
+ap_stream_name = "Record Node 117#Neuropix-PXI-119.ProbeA-AP"
+recording_interface = OpenEphysRecordingInterface(recording_folder_path, ap_stream_name)
+
+unaligned_timestamps = recording_interface.get_timestamps()
+unaligned_timestamps[:7]
+>>> [29.74, 29.74003333, 29.74006667, 29.7401, 29.74013333, 29.74016667, 29.7402]
+
+aligned_timestamps = unaligned_timestamps + time_shift
+>>> [1.15782763, 1.15786096, 1.1578943 , 1.15792763, 1.15796096, 1.1579943 , 1.15802763]
+```
+
+1) When the time shift is negative and the first aligned timestamp of the recording trace is negative:
+- shift back bpod (from every column that has a timestamp they have to be shifted back)
+- shift back session start time
+- don't have to move recording nor the center_port_onset_times and center_port_offset_times
+2) When the time shift is negative and the first aligned timestamp of the recording trace is positive
+- we move the recording, center_port_onset_times and center_port_offset_times backward
+3) When time shift is positive
+- we move the recording, center_port_onset_times and center_port_offset_times forward
 
 
 ### Mapping to NWB
@@ -157,3 +277,35 @@ We are using this computed time shift to shift the ephys timestamps.
 The following UML diagram shows the mapping of source data to NWB.
 
 ![nwb mapping](schierek_embargo_2024_uml.png)
+
+## OpenEphys XML Channel Fixer
+
+This utility helps fix OpenEphys `settings.xml` files when channels are accidentally dropped by the OpenEphys GUI.
+This issue can prevent proper data extraction using our extractors. The script identifies missing AP channels and adds
+them back to the XML configuration with the correct electrode positions.
+
+
+### Usage
+
+```python
+from constantinople_to_nwb.utils import fix_settings_xml_missing_channels
+import probeinterface
+from pathlib import Path
+
+# Path to the settings.xml file
+settings_path = Path("/path/to/your/Ephys Data/E003_2022-08-22_14-56-16/Record Node 103/settings.xml")
+
+# Fix the XML file
+modified_path = fix_settings_xml_missing_channels(
+    settings_xml_file_path=settings_path,
+    # Optional: specify AP stream name to verify the file can be read with probeinterface
+    stream_name="Record Node 103#Neuropix-PXI-100.0"
+)
+
+# Verify the channel configuration has been updated successfully
+ap_stream_name = "Record Node 103#Neuropix-PXI-100.0"  # The name of the AP recording stream
+probe = probeinterface.read_openephys(
+  settings_file=settings_path, stream_name=ap_stream_name
+)
+assert len(probe.contact_ids) == 384
+```

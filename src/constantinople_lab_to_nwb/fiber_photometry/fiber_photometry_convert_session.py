@@ -1,6 +1,4 @@
 import os
-import re
-from datetime import datetime
 from pathlib import Path
 from typing import Union, Optional
 
@@ -10,10 +8,14 @@ from neuroconv.utils import load_dict_from_file, dict_deep_update
 from constantinople_lab_to_nwb.fiber_photometry import FiberPhotometryNWBConverter
 from ndx_pose import PoseEstimation
 
+from constantinople_lab_to_nwb.utils import get_subject_metadata_from_rat_info_folder
+
 
 def session_to_nwb(
     raw_fiber_photometry_file_path: Union[str, Path],
+    fiber_photometry_metadata: dict,
     raw_behavior_file_path: Union[str, Path],
+    subject_metadata: dict,
     nwbfile_path: Union[str, Path],
     dlc_file_path: Optional[Union[str, Path]] = None,
     video_file_path: Optional[Union[str, Path]] = None,
@@ -27,6 +29,10 @@ def session_to_nwb(
     ----------
     raw_fiber_photometry_file_path : Union[str, Path]
         Path to the raw fiber photometry file (.doric or .csv).
+    fiber_photometry_metadata : dict
+        The metadata for the fiber photometry experiment setup.
+    subject_metadata: dict
+        The dictionary containing the subject metadata. (e.g. {'date_of_birth': '2022-11-22', 'description': 'Vendor: OVR', 'sex': 'M'}
     raw_behavior_file_path : Union[str, Path]
         Path to the raw Bpod output (.mat file).
     nwbfile_path : Union[str, Path]
@@ -44,17 +50,16 @@ def session_to_nwb(
     conversion_options = dict()
 
     raw_fiber_photometry_file_path = Path(raw_fiber_photometry_file_path)
-    raw_fiber_photometry_file_name = raw_fiber_photometry_file_path.stem
-    subject_id, session_id = raw_fiber_photometry_file_name.split("_", maxsplit=1)
+
+    subject_id, session_id = Path(raw_behavior_file_path).stem.split("_", maxsplit=1)
+    protocol = session_id.split("_")[0]
     session_id = session_id.replace("_", "-")
 
     # Add fiber photometry data
     file_suffix = raw_fiber_photometry_file_path.suffix
     if file_suffix == ".doric":
-        fiber_photometry_metadata_file_name = "doric_fiber_photometry_metadata.yaml"
         interface_name = "FiberPhotometryDoric"
     elif file_suffix == ".csv":
-        fiber_photometry_metadata_file_name = "doric_csv_fiber_photometry_metadata.yaml"
         interface_name = "FiberPhotometryCsv"
     else:
         raise ValueError(
@@ -90,27 +95,25 @@ def session_to_nwb(
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
-    metadata["NWBFile"].update(session_id=session_id)
+    metadata["NWBFile"].update(session_id=session_id, protocol=protocol)
 
-    date_pattern = r"(?P<date>\d{8})"
-
-    match = re.search(date_pattern, raw_fiber_photometry_file_name)
-    if match:
-        date_str = match.group("date")
-        date_obj = datetime.strptime(date_str, "%Y%m%d")
-        session_start_time = date_obj
-        tzinfo = tz.gettz("America/New_York")
-        metadata["NWBFile"].update(session_start_time=session_start_time.replace(tzinfo=tzinfo))
+    session_start_time = metadata["NWBFile"]["session_start_time"]
+    tzinfo = tz.gettz("America/New_York")
+    metadata["NWBFile"].update(session_start_time=session_start_time.replace(tzinfo=tzinfo))
 
     # Update default metadata with the editable in the corresponding yaml file
-    editable_metadata_path = Path(__file__).parent / "metadata" / fiber_photometry_metadata_file_name
+    editable_metadata_path = Path(__file__).parent / "metadata" / "general_metadata.yaml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
+
+    metadata = dict_deep_update(metadata, fiber_photometry_metadata)
 
     # Update behavior metadata
     behavior_metadata_path = Path(__file__).parent / "metadata" / "behavior_metadata.yaml"
     behavior_metadata = load_dict_from_file(behavior_metadata_path)
     metadata = dict_deep_update(metadata, behavior_metadata)
+
+    metadata["Subject"].update(subject_id=subject_id, **subject_metadata)
 
     # Run conversion
     converter.run_conversion(
@@ -127,6 +130,9 @@ if __name__ == "__main__":
     doric_fiber_photometry_file_path = Path(
         "/Volumes/T9/Constantinople/Preprocessed_data/J069/Raw/J069_ACh_20230809_HJJ_0002.doric"
     )
+    # Update default metadata with the editable in the corresponding yaml file
+    fiber_photometry_metadata_file_path = Path(__file__).parent / "metadata" / "doric_fiber_photometry_metadata.yaml"
+    fiber_photometry_metadata = load_dict_from_file(fiber_photometry_metadata_file_path)
 
     # The raw behavior data from Bpod (contains data for a single session)
     bpod_behavior_file_path = Path(
@@ -142,16 +148,26 @@ if __name__ == "__main__":
         "/Volumes/T9/Constantinople/Compressed Videos/J069/J069-2023-08-09_rig104cam01_0002comp.mp4"
     )
     # NWB file path
-    nwbfile_path = Path("/Volumes/T9/Constantinople/nwbfiles/J069_ACh_20230809_HJJ_0002.nwb")
+    nwbfile_path = Path("/Users/weian/data/demo/J069_ACh_20230809_HJJ_0002.nwb")
     if not nwbfile_path.parent.exists():
         os.makedirs(nwbfile_path.parent, exist_ok=True)
 
     stub_test = False
     overwrite = True
 
+    # Get subject metadata from rat registry
+    rat_registry_folder_path = "/Volumes/T9/Constantinople/Rat_info"
+    subject_metadata = get_subject_metadata_from_rat_info_folder(
+        folder_path=rat_registry_folder_path,
+        subject_id="J069",
+        date="2023-08-09",
+    )
+
     session_to_nwb(
         raw_fiber_photometry_file_path=doric_fiber_photometry_file_path,
+        fiber_photometry_metadata=fiber_photometry_metadata,
         raw_behavior_file_path=bpod_behavior_file_path,
+        subject_metadata=subject_metadata,
         nwbfile_path=nwbfile_path,
         dlc_file_path=dlc_file_path,
         video_file_path=behavior_video_file_path,

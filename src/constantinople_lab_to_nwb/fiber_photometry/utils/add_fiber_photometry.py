@@ -60,6 +60,8 @@ def add_fiber_photometry_table(nwbfile: NWBFile, metadata: dict):
         A dictionary containing metadata necessary for constructing the Fiber Photometry
         table. Expects keys "Ophys" and "FiberPhotometry" with appropriate subkeys.
     """
+    add_fiber_photometry_devices(nwbfile=nwbfile, metadata=metadata)
+
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
     fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
 
@@ -70,16 +72,30 @@ def add_fiber_photometry_table(nwbfile: NWBFile, metadata: dict):
         name=fiber_photometry_table_metadata["name"],
         description=fiber_photometry_table_metadata["description"],
     )
-    # fiber_photometry_table.add_column(
-    #     name="additional_column_name",
-    #     description="additional_column_description",
-    # )
 
     fiber_photometry_lab_meta_data = FiberPhotometry(
         name="FiberPhotometry",
         fiber_photometry_table=fiber_photometry_table,
     )
     nwbfile.add_lab_meta_data(fiber_photometry_lab_meta_data)
+
+    fiber_photometry_table = nwbfile.lab_meta_data["FiberPhotometry"].fiber_photometry_table
+    rows_metadata = fiber_photometry_metadata["FiberPhotometryTable"]["rows"]
+    device_fields = [
+        "optical_fiber",
+        "excitation_source",
+        "photodetector",
+        "dichroic_mirror",
+        "indicator",
+        "excitation_filter",
+        "emission_filter",
+    ]
+    for row_metadata in rows_metadata:
+        row_data = {field: nwbfile.devices[row_metadata[field]] for field in device_fields if field in row_metadata}
+        row_data.update(location=row_metadata["location"])
+        if "coordinates" in row_metadata:
+            row_data["coordinates"] = row_metadata["coordinates"]
+        fiber_photometry_table.add_row(**row_data, id=int(row_metadata["name"]))
 
 
 def add_fiber_photometry_response_series(
@@ -119,8 +135,6 @@ def add_fiber_photometry_response_series(
         If the number of channels in traces does not match the number of rows in the fiber photometry table.
         If the lengths of traces and timestamps do not match.
     """
-    add_fiber_photometry_devices(nwbfile=nwbfile, metadata=metadata)
-
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
     traces_metadata = fiber_photometry_metadata["FiberPhotometryResponseSeries"]
     trace_metadata = next(
@@ -130,39 +144,12 @@ def add_fiber_photometry_response_series(
     if trace_metadata is None:
         raise ValueError(f"Trace metadata for '{fiber_photometry_series_name}' not found.")
 
-    add_fiber_photometry_table(nwbfile=nwbfile, metadata=metadata)
     fiber_photometry_table = nwbfile.lab_meta_data["FiberPhotometry"].fiber_photometry_table
-
-    row_indices = trace_metadata["fiber_photometry_table_region"]
-    device_fields = [
-        "optical_fiber",
-        "excitation_source",
-        "photodetector",
-        "dichroic_mirror",
-        "indicator",
-        "excitation_filter",
-        "emission_filter",
-    ]
-    for row_index in row_indices:
-        if row_index in fiber_photometry_table.id:
-            continue
-        row_metadata = fiber_photometry_metadata["FiberPhotometryTable"]["rows"][row_index]
-        row_data = {field: nwbfile.devices[row_metadata[field]] for field in device_fields if field in row_metadata}
-        row_data["location"] = row_metadata["location"]
-        if "coordinates" in row_metadata:
-            row_data["coordinates"] = row_metadata["coordinates"]
-        if "commanded_voltage_series" in row_metadata:
-            row_data["commanded_voltage_series"] = nwbfile.acquisition[row_metadata["commanded_voltage_series"]]
-        fiber_photometry_table.add_row(**row_data)
-
-    if traces.shape[1] != len(trace_metadata["fiber_photometry_table_region"]):
-        raise ValueError(
-            f"Number of channels ({traces.shape[1]}) should be equal to the number of rows referenced in the fiber photometry table ({len(trace_metadata['fiber_photometry_table_region'])})."
-        )
+    assert fiber_photometry_table is not None, "'FiberPhotometryTable' not found in lab meta data."
 
     fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
         description=trace_metadata["fiber_photometry_table_region_description"],
-        region=trace_metadata["fiber_photometry_table_region"],
+        region=list(trace_metadata["fiber_photometry_table_region"]),
     )
 
     if traces.shape[0] != len(timestamps):

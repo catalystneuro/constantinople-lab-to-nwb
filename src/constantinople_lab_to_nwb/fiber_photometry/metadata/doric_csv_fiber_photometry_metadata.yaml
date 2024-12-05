@@ -5,144 +5,93 @@ Ophys:
   FiberPhotometry:
     OpticalFibers:
       - name: optical_fiber
-        description: The optical fibers (Thor labs) with 400 μm core, 0.5 NA fiber optics were implanted over the injection site.
+        description: Chronically implantable optic fibers (Thor labs) with 400 µm core, 0.5 NA fiber optics were implanted unilaterally over the injection site (DV -6.7). Doric Lenses hardware and software (Doric Neuroscience Studio) were used to record fluorescence. Two-channel motion artifact correction (TMAC) was used to correct for movement artifacts, with mCherry as the activity-independent channel.
         manufacturer: Thor labs
         # model: unknown
         numerical_aperture: 0.5
         core_diameter_in_um: 400.0
     ExcitationSources: # Can't find any information in the referred papers
-      - name: excitation_source
-        description: TBD
+      - name: excitation_source_grab_da
+        description: The excitation wavelength for GRAB-DA indicator.
         manufacturer: Doric Lenses
-        model: TBD
+        # model: TBD
         illumination_type: LED
-        excitation_wavelength_in_nm: 0.0 # TBD
-      - name: excitation_source_isosbestic_control
-        description: TBD
+        excitation_wavelength_in_nm: 470.0
+      - name: excitation_source_mcherry
+        description: The excitation wavelength for mCherry indicator.
         manufacturer: Doric Lenses
-        model: TBD
+        # model: TBD
         illumination_type: LED
-        excitation_wavelength_in_nm: 0.0 # TBD
+        excitation_wavelength_in_nm: 405.0
+      - name: excitation_source_grab_da_isosbestic
+        description: The isosbestic point for GRAB-DA indicator.
+        manufacturer: Doric Lenses
+        # model: TBD
+        illumination_type: LED
+        excitation_wavelength_in_nm: 405.0
     Photodetectors: # Can't find any information in the referred papers
       - name: photodetector
-        description: TBD
+        # description: TBD
         manufacturer: Doric Lenses
-        model: TBD
+        # model: TBD
         detector_type: photodiode
-        detected_wavelength_in_nm: 0.0 # TBD
+        detected_wavelength_in_nm: 470.0 # TBD
         # gain: # TBD
-    BandOpticalFilters: # Can't find any information in the referred papers
-      - name: emission_filter
-        description: TBD
-        manufacturer: Doric Lenses
-        model: TBD
-        center_wavelength_in_nm: 0.0 # TBD
-        bandwidth_in_nm: 0.0 # TBD
-        filter_type: Bandpass
-      - name: excitation_filter
-        description: TBD
-        manufacturer: Doric Lenses
-        model: TBD
-        center_wavelength_in_nm: 0.0 # TBD
-        bandwidth_in_nm: 0.0 # TBD
-        filter_type: Bandpass
-      - name: isosbestic_excitation_filter
-        description: TBD
-        manufacturer: Doric Lenses
-        model: TBD
-        center_wavelength_in_nm: 0.0 # TBD
-        bandwidth_in_nm: 0.0 # TBD
-        filter_type: Bandpass
     DichroicMirrors: # Can't find any information in the referred papers
       - name: dichroic_mirror
-        description: TBD
+        # description: TBD
         manufacturer: Doric Lenses
-        model: TBD
+        # model: TBD
     Indicators:
-      - name: grab_da_dms
-        description: "To measure dopamine activity, AAV9-hsyn-GRAB DA2h (AddGene #140554) was injected into the DMS (AP: -0.4 mm, ML: ±3.5 mm, DV: -4.6 mm from the skull surface at bregma at a 10 degrees angle)."
+      - name: grab_da
+        description: "To measure dopamine activity, AAV9-hsyn-GRAB-DA2h (AddGene #140554) was injected into the NAcc."
         manufacturer: Addgene
-        label: AAV9-hSyn-GRAB
-        injection_location: DMS
-        injection_coordinates_in_mm: [-0.4, -3.5, -4.6]
-      - name: grab_ach_dms
-        description: "To measure acetylcholine activity, AAV9-hSyn-ACh4.3 (WZ Biosciences #YL10002) was injected into the DMS (AP: 1.7 mm, ML: ±2.8 mm, DV: -4.3 mm from the skull surface at bregma at a 10 degrees angle)."
-        manufacturer: WZ Biosciences
-        label: AAV9-hSyn-ACh4.3
-        injection_location: DMS
-        injection_coordinates_in_mm: [1.7, 2.8, -4.3]
-      - name: grab_da_nacc
-        description: "To measure dopamine activity, AAV9-hsyn-GRAB DA2h (AddGene #140554) was injected into the NAcc (AP: 1.3 mm, ML: 1.65 mm, DV:-6.9 mm with an 8-10 degrees angle from the midline for bilateral implants)."
-        manufacturer: Addgene
-        label: AAV9-hSyn-GRAB
+        label: AAV9-hsyn-GRAB-DA2h
         injection_location: NAcc
-        injection_coordinates_in_mm: [1.3, 1.65, -6.9]
+        # injection_coordinates_in_mm: [-0.4, -3.5, -4.6]
       - name: mcherry
-        description: "The control fluorophore was mCherry (AAV9-CB7-CI-mCherry-WPRE-RBG, AddGene #105544)."
+        description: "The control fluorophore was mCherry (AAV1-CB7-CI-mCherry-WPRE-RBG, AddGene #105544)."
         label: AAV1-CB7-CI-mCherry
         manufacturer: Addgene
+        # injection_coordinates_in_mm: [-0.4, -3.5, -4.6]
     FiberPhotometryTable:
       name: fiber_photometry_table
-      description: TBD
+      description: The metadata of the fiber photometry setup.
       rows:
-        - name: 1
-          location: DMS
-          # coordinates: [0.8, 1.5, 2.8]
-          # commanded_voltage_series: commanded_voltage_series_dms_calcium_signal
-          indicator: grab_da_dms
-          optical_fiber: optical_fiber
-          excitation_source: excitation_source
-          photodetector: photodetector
-          excitation_filter: excitation_filter
-          emission_filter: emission_filter
-          dichroic_mirror: dichroic_mirror
-        - name: 3
-          location: DLS
-          # coordinates: [0.8, 1.5, 2.8]
-          indicator: grab_da_dms
-          optical_fiber: optical_fiber
-          excitation_source: excitation_source
-          photodetector: photodetector
-          excitation_filter: excitation_filter
-          emission_filter: emission_filter
-          dichroic_mirror: dichroic_mirror
         - name: 0
-          location: DMS
+          location: NAcc
           # coordinates: [0.8, 1.5, 2.8]
-          # commanded_voltage_series: commanded_voltage_series_dms_isosbestic_control
           indicator: mcherry
           optical_fiber: optical_fiber
-          excitation_source: excitation_source_isosbestic_control
+          excitation_source: excitation_source_mcherry
           photodetector: photodetector
-          excitation_filter: isosbestic_excitation_filter
-          emission_filter: emission_filter
+          dichroic_mirror: dichroic_mirror
+        - name: 1
+          location: NAcc
+          # coordinates: [0.8, 1.5, 2.8]
+          indicator: grab_da
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_grab
+          photodetector: photodetector
           dichroic_mirror: dichroic_mirror
         - name: 2
-          location: DLS
-            # coordinates: [0.8, 1.5, 2.8]
-          indicator: mcherry
+          location: NAcc
+          # coordinates: [0.8, 1.5, 2.8]
+          indicator: grab_da
           optical_fiber: optical_fiber
-          excitation_source: excitation_source_isosbestic_control
+          excitation_source: excitation_source_grab_isosbestic
           photodetector: photodetector
-          excitation_filter: isosbestic_excitation_filter
-          emission_filter: emission_filter
           dichroic_mirror: dichroic_mirror
     FiberPhotometryResponseSeries:
-      - name: fiber_photometry_response_series
-        description: The raw fluorescence signal # TBD
-        channel_column_names: ["AIn-1 - Raw", "AIn-2 - Raw"]
+      - name: raw_fiber_photometry_signal
+        description: The raw fiber photometry signal before demodulation. # TBD
+        channel_column_names: ["AIn-1 - Raw", "AIn-2 - Raw", "AIn-3"]
         unit: a.u.
-        fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw fluorescence signal.
-      - name: fiber_photometry_response_series_isosbestic
-        description: The isosbestic signal # TBD
-        channel_column_names: ["AIn-3"]
-        unit: a.u.
-        fiber_photometry_table_region: [0]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the isosbestic signal.
-      - name: fiber_photometry_response_series_motion_corrected
-        description: The motion corrected signal # TBD
+        fiber_photometry_table_region: [0, 1, 2]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
+      - name: estimated_fiber_photometry_response_series
+        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
         channel_column_names: ["AIn-1 - Dem (AOut-1)", "AIn-2 - Dem (AOut-2)"]
         unit: a.u.
         fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
