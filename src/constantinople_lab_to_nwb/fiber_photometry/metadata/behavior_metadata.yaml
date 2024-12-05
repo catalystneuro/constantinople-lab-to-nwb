@@ -1,0 +1,255 @@
+Behavior:
+  TrialsTable:
+    description: |
+      LED illumination from the center port indicated that the animal could initiate a trial by poking its nose in that
+      port - upon trial initiation the center LED turned off. While in the center port, rats needed to maintain center
+      fixation for a duration drawn uniformly from [0.8, 1.2] seconds. During the fixation period, a tone played from
+      both speakers, the frequency of which indicated the volume of the offered water reward for that trial
+      [1, 2, 4, 8, 16kHz, indicating 5, 10, 20, 40, 80μL rewards]. Following the fixation period, one of the two side
+      LEDs was illuminated, indicating that the reward might be delivered at that port; the side was randomly chosen on
+      each trial.This event (side LED ON) also initiated a variable and unpredictable delay period, which was randomly
+      drawn from an exponential distribution with mean=2.5s. The reward port LED remained illuminated for the duration
+      of the delay period, and rats were not required to maintain fixation during this period, although they tended to
+      fixate in the reward port. When reward was available, the reward port LED turned off, and rats could collect the
+      offered reward by nose poking in that port. The rat could also choose to terminate the trial (opt-out) at any time
+      by nose poking in the opposite, un-illuminated side port, after which a new trial would immediately begin. On a
+      proportion of trials (15–25%), the delay period would only end if the rat opted out (catch trials). If rats did
+      not opt-out within 100s on catch trials, the trial would terminate. The trials were self-paced: after receiving
+      their reward or opting out, rats were free to initiate another trial immediately. However, if rats terminated
+      center fixation prematurely, they were penalized with a white noise sound and a time out penalty (typically 2s,
+      although adjusted to individual animals). Following premature fixation breaks, the rats received the same offered
+      reward, in order to disincentivize premature terminations for small volume offers. We introduced semi-observable,
+      hidden states in the task by including uncued blocks of trials with varying reward statistics: high and low blocks
+      , which offered the highest three or lowest three rewards, respectively, and were interspersed with mixed blocks,
+      which offered all volumes. There was a hierarchical structure to the blocks, such that high and low blocks
+      alternated after mixed blocks (e.g., mixed-high-mixed-low, or mixed-low-mixed-high). The first block of each
+      session was a mixed block. Blocks transitioned after 40 successfully completed trials. Because rats prematurely
+      broke fixation on a subset of trials, in practice, block durations were variable.
+  StateTypesTable:
+    description: Contains the name of the states in the task.
+    WaitForPoke:
+      name: wait_for_poke
+    NoseInCenter:
+      name: nose_in_center
+    PunishViolation:
+      name: punish_violation
+    GoCue:
+      name: go_cue
+    WaitForSidePoke:
+      name: wait_for_side_poke
+    PortOut:
+      name: port_out
+    AnnounceReward:
+      name: announce_reward
+    Reward:
+      name: reward
+    OptOut:
+      name: opt_out
+    StopSound:
+      name: stop_sound
+  StatesTable:
+    description: Contains the start and end times of each state in the task.
+  EventTypesTable:
+    description: Contains the name of the events in the task.
+    Tup:
+      name: state_timer
+    GlobalTimer1_Start:
+      name: state_timer
+    GlobalTimer1_End:
+      name: state_timer
+    Port1In:
+      name: left_port_poke
+    Port1Out:
+      name: left_port_poke
+    Port2In:
+      name: center_port_poke
+    Port2Out:
+      name: center_port_poke
+    Port3In:
+      name : right_port_poke
+    Port3Out:
+      name : right_port_poke
+  EventsTable:
+    description: Contains the onset times of events in the task.
+  ActionTypesTable:
+    description: Contains the name of the task output actions.
+    SoundOutput:
+      name: sound_output
+  ActionsTable:
+    description: Contains the onset times of the task output actions (e.g. LED turned on/off).
+  TaskArgumentsTable:
+    RewardAmount:
+      name: reward_volume_ul
+      description: The volume of reward in microliters.
+      expression_type: integer
+      output_type: numeric
+    NoseInCenter:
+      name: nose_in_center
+      description: The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).
+      expression_type: double
+      output_type: numeric
+    NICincrement:
+      name: time_increment_for_nose_in_center
+      description: The time increment for nose in center in seconds.
+      expression_type: double
+      output_type: numeric
+    TargetNIC:
+      name: target_duration_for_nose_in_center
+      description: The goal for how long the animal must poke center in seconds.
+      expression_type: double
+      output_type: numeric
+    TrainingStage:
+      name: training_stage
+      description: The stage of the training.
+      expression_type: integer
+      output_type: numeric
+    DelayToReward:
+      name: reward_delay
+      description: The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.
+      expression_type: double
+      output_type: numeric
+    TargetDelayToReward:
+      name: target_reward_delay
+      description: The target delay in seconds to receive reward.
+      expression_type: double
+      output_type: numeric
+    DTRincrement:
+      name: time_increment_for_reward_delay
+      description: The time increment during monotonic increase of reward delay.
+      expression_type: double
+      output_type: numeric
+    ViolationTO:
+      name: violation_time_out
+      description: The time-out if nose is center is not satisfied in seconds.
+      expression_type: double
+      output_type: numeric
+    Block:
+      name: block_type
+      description: The block type (High, Low or Mixed). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. The mixed blocks offered all volumes.
+      expression_type: string
+      output_type: string
+    BlockLengthTest:
+      name: num_trials_in_mixed_blocks
+      description: The number of trials in each mixed blocks.
+      expression_type: integer
+      output_type: numeric
+    BlockLengthAd:
+      name: num_trials_in_adaptation_blocks
+      description: The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.
+      expression_type: integer
+      output_type: numeric
+    PunishSound:
+      name: punish_sound_enabled
+      description: Whether to play a white noise pulse on error.
+      expression_type: boolean
+      output_type: boolean
+    ProbCatch:
+      name: catch_percentage
+      description: The percentage of catch trials.
+      expression_type: double
+      output_type: numeric
+    IsCatch:
+      name: is_catch
+      description: Whether the trial is a catch trial.
+      expression_type: boolean
+      output_type: boolean
+    CTrial:
+      name: current_trial
+      description: The current trial number.
+      expression_type: integer
+      output_type: numeric
+    VolumeDelivered:
+      name: cumulative_reward_volume_ul
+      description: The cumulative volume received during session in microliters.
+      expression_type: double
+      output_type: numeric
+    WarmUp:
+      name: is_warm_up
+      description: Whether the trial is warm-up.
+      expression_type: boolean
+      output_type: boolean
+    OverrideNIC:
+      name: override_nose_in_center
+      description: Whether the required time for maintaining center port is overridden.
+      expression_type: boolean
+      output_type: boolean
+    TrialsInStage:
+      name: trials_in_stage
+      description: The cumulative number of trials in the stages.
+      expression_type: integer
+      output_type: numeric
+    MinimumVol:
+      name: min_reward_volume_ul
+      description: The minimum volume of reward in microliters. (The minimum volume is 4 ul for females and 6 ul for males.)
+      expression_type: double
+      output_type: numeric
+    AutoProbCatch:
+      name: auto_change_catch_probability
+      description: Whether to change the probability automatically after a certain number of trials.
+      expression_type: boolean
+      output_type: boolean
+    PrevWasViol:
+      name: previous_was_violation
+      description: Whether the previous trial was a violation.
+      expression_type: boolean
+      output_type: boolean
+    changed:
+      name: changed
+      description: Whether a block transition occurred for the trial.
+      expression_type: boolean
+      output_type: boolean
+    CPCue:
+      name: center_port_cue
+      description: Task parameter.
+      expression_type: boolean
+      output_type: boolean
+    CycleBlocks:
+      name: cycle_blocks
+      description: Task parameter.
+      expression_type: boolean
+      output_type: boolean
+    HitFrac:
+      name: hit_percentage
+      description: The percentage of hit trials.
+      expression_type: double
+      output_type: numeric
+    hits:
+      name: hits
+      description: The number of trials where reward was delivered.
+      expression_type: integer
+      output_type: numeric
+    TrialsStage2:
+      name: num_trials_in_stage_2
+      description: Determines how many trials occur in stage 2 before transition.
+      expression_type: integer
+      output_type: numeric
+    TrialsStage3:
+      name: num_trials_in_stage_3
+      description: Determines how many trials occur in stage 3 before transition.
+      expression_type: integer
+      output_type: numeric
+    TrialsStage4:
+      name: num_trials_in_stage_4
+      description: Determines how many trials occur in stage 4 before transition.
+      expression_type: integer
+      output_type: numeric
+    TrialsStage5:
+      name: num_trials_in_stage_5
+      description: Determines how many trials occur in stage 5 before transition.
+      expression_type: integer
+      output_type: numeric
+    TrialsStage6:
+      name: num_trials_in_stage_6
+      description: Determines how many trials occur in stage 6 before transition.
+      expression_type: integer
+      output_type: numeric
+    TrialsStage8:
+      name: num_trials_in_stage_8
+      description: Determines how many trials occur in stage 8 before transition.
+      expression_type: integer
+      output_type: numeric
+    HiITI:
+      name: high_ITI
+      description: Task parameter. # no description provided
+      expression_type: double
+      output_type: numeric

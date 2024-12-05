@@ -1,0 +1,97 @@
+# The metadata of the fiber photometry setup
+# papers with similar setup: https://www.biorxiv.org/content/10.1101/2023.12.09.570945v1.full.pdf
+#                            https://www.biorxiv.org/content/10.1101/2024.05.03.592444v1.full.pdf
+Ophys:
+  FiberPhotometry:
+    OpticalFibers:
+      - name: optical_fiber
+        description: Chronically implantable optic fibers (Thor labs) with 400 µm core, 0.5 NA fiber optics were implanted unilaterally over the injection site (DV -6.7). Doric Lenses hardware and software (Doric Neuroscience Studio) were used to record fluorescence. Two-channel motion artifact correction (TMAC) was used to correct for movement artifacts, with mCherry as the activity-independent channel.
+        manufacturer: Thor labs
+        # model: unknown
+        numerical_aperture: 0.5
+        core_diameter_in_um: 400.0
+    ExcitationSources: # Can't find any information in the referred papers
+      - name: excitation_source_grab_da
+        description: The excitation wavelength for GRAB-DA indicator.
+        manufacturer: Doric Lenses
+        # model: TBD
+        illumination_type: LED
+        excitation_wavelength_in_nm: 470.0
+      - name: excitation_source_mcherry
+        description: The excitation wavelength for mCherry indicator.
+        manufacturer: Doric Lenses
+        # model: TBD
+        illumination_type: LED
+        excitation_wavelength_in_nm: 405.0
+      - name: excitation_source_grab_da_isosbestic
+        description: The isosbestic point for GRAB-DA indicator.
+        manufacturer: Doric Lenses
+        # model: TBD
+        illumination_type: LED
+        excitation_wavelength_in_nm: 405.0
+    Photodetectors: # Can't find any information in the referred papers
+      - name: photodetector
+        # description: TBD
+        manufacturer: Doric Lenses
+        # model: TBD
+        detector_type: photodiode
+        detected_wavelength_in_nm: 470.0 # TBD
+        # gain: # TBD
+    DichroicMirrors: # Can't find any information in the referred papers
+      - name: dichroic_mirror
+        # description: TBD
+        manufacturer: Doric Lenses
+        # model: TBD
+    Indicators:
+      - name: grab_da
+        description: "To measure dopamine activity, AAV9-hsyn-GRAB-DA2h (AddGene #140554) was injected into the NAcc."
+        manufacturer: Addgene
+        label: AAV9-hsyn-GRAB-DA2h
+        injection_location: NAcc
+        # injection_coordinates_in_mm: [-0.4, -3.5, -4.6]
+      - name: mcherry
+        description: "The control fluorophore was mCherry (AAV1-CB7-CI-mCherry-WPRE-RBG, AddGene #105544)."
+        label: AAV1-CB7-CI-mCherry
+        manufacturer: Addgene
+        # injection_coordinates_in_mm: [-0.4, -3.5, -4.6]
+    FiberPhotometryTable:
+      name: fiber_photometry_table
+      description: The metadata of the fiber photometry setup.
+      rows:
+        - name: 0
+          location: NAcc
+          # coordinates: [0.8, 1.5, 2.8]
+          indicator: mcherry
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_mcherry
+          photodetector: photodetector
+          dichroic_mirror: dichroic_mirror
+        - name: 1
+          location: NAcc
+          # coordinates: [0.8, 1.5, 2.8]
+          indicator: grab_da
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_grab
+          photodetector: photodetector
+          dichroic_mirror: dichroic_mirror
+        - name: 2
+          location: NAcc
+          # coordinates: [0.8, 1.5, 2.8]
+          indicator: grab_da
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_grab_isosbestic
+          photodetector: photodetector
+          dichroic_mirror: dichroic_mirror
+    FiberPhotometryResponseSeries:
+      - name: raw_fiber_photometry_signal
+        description: The raw fiber photometry signal before demodulation. # TBD
+        channel_column_names: ["AIn-1 - Raw", "AIn-2 - Raw", "AIn-3"]
+        unit: a.u.
+        fiber_photometry_table_region: [0, 1, 2]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
+      - name: estimated_fiber_photometry_response_series
+        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
+        channel_column_names: ["AIn-1 - Dem (AOut-1)", "AIn-2 - Dem (AOut-2)"]
+        unit: a.u.
+        fiber_photometry_table_region: [0, 1]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
