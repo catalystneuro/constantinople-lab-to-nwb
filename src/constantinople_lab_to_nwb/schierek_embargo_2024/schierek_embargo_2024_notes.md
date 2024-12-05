@@ -171,6 +171,9 @@ We are aligning the starting time of the recording and sorting interfaces to the
 
 We are computing the time shift from the Bpod trial start time to the NIDAQ trial start time.
 
+From a conceptual point of view, the trial start and the central port onset are equivalent: a trial starts when the first time the central port is on.
+
+
 ```python
 time_shift = bpod_trial_start_times[0] - center_port_onset_times[0]
 >>> -28.58217236918037
