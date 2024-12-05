@@ -248,6 +248,14 @@ def session_to_nwb(
     ephys_metadata = load_dict_from_file(ephys_metadata_path)
     metadata = dict_deep_update(metadata, ephys_metadata)
 
+    if "opto" in protocol.lower():
+        # Load optogenetics_stimulation_metadata
+        ogen_metadata_path = (
+            Path(__file__).parent / "metadata" / "schierek_embargo_2024_optogenetics_stimulation_metadata.yaml"
+        )
+        ogen_metadata = load_dict_from_file(ogen_metadata_path)
+        metadata = dict_deep_update(metadata, ogen_metadata)
+
     if ephys_registry_file_path is not None:
         metadata = update_ephys_device_metadata_for_subject(
             epys_registry_file_path=ephys_registry_file_path,

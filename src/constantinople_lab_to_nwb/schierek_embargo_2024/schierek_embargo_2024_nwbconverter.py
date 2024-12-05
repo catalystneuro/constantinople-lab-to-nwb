@@ -4,6 +4,7 @@ from typing import Optional, Dict, List
 from warnings import warn
 
 import numpy as np
+from pynwb import NWBFile
 from neuroconv import NWBConverter
 from neuroconv.datainterfaces import (
     OpenEphysRecordingInterface,
@@ -13,6 +14,7 @@ from neuroconv.utils import FilePathType
 from probeinterface import read_probeinterface, Probe
 
 from constantinople_lab_to_nwb.general_interfaces import BpodBehaviorInterface
+from constantinople_lab_to_nwb.utils import add_optogenetics_series
 
 from constantinople_lab_to_nwb.schierek_embargo_2024.interfaces import (
     SchierekEmbargo2024SortingInterface,
@@ -173,3 +175,8 @@ class SchierekEmbargo2024NWBConverter(NWBConverter):
         for sorting_interface_name in sorting_interface_names:
             sorting_interface = self.data_interface_objects[sorting_interface_name]
             sorting_interface.register_recording(self.data_interface_objects[recording_interface_names[0]])
+
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
+        super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
+
+        add_optogenetics_series(nwbfile=nwbfile, metadata=metadata)
