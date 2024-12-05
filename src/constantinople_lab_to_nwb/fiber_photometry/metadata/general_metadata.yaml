@@ -1,0 +1,21 @@
+NWBFile:
+#  related_publications:
+#    - https://doi.org/10.1038/s41467-023-43250-x
+#    - https://doi.org/10.5281/zenodo.10031483
+  experiment_description: |
+    This dataset contains fiber photometry recordings during decision-making behavioral task in rats. Deeplabcut software (v.2.2.3) was used for tracking the behavior ports (right port, central port, and left port) and 6 body parts (right ear, nose, left ear, mid-point along the right torso, mid-point along the left torso, and base of the tail). Video data were acquired using cameras attached to the ceiling of behavior rigs to capture the top-down view of the arena (Doric USB3 behavior camera, Sony IMX290, recorded with Doric Neuroscience Studio v6 software). The fluorescence from activity-dependent (GRAB-DA and GRAB-ACh) and activity-independent (isosbestic or mCherry) signals was acquired simultaneously via demodulation and downsampled on-the-fly by a factor of 25 to ~481.9 Hz. The behavioral tasks were conducted in a high-throughput facility where rats were trained in increasingly complex protocols. Trials were initiated by a nose-poke in a lit center port and required maintaining a center fixation for 0.8 to 1.2 seconds, during which a tone indicated the possible reward size. A subsequent side LED indicated the potential reward location, followed by a delay period drawn from an exponential distribution (mean = 2.5 s). Rats could opt out at any time by poking the unlit port, restarting the trial. Catch trials, where the delay period only ended if the rat opted out, constituted 15-25% of the trials. Rats received penalties for premature fixation breaks. Additionally, the tasks introduced semi-observable hidden states by varying reward statistics across uncued blocks (high, low, and mixed), structured hierarchically, with blocks transitioning after 40 successfully completed trials.
+  session_description:
+      This session contains fiber photometry recordings during decision-making behavioral task in rats. Deeplabcut software (v.2.2.3) was used for tracking the behavior ports (right port, central port, and left port) and 6 body parts (right ear, nose, left ear, mid-point along the right torso, mid-point along the left torso, and base of the tail). Video data were acquired using cameras attached to the ceiling of behavior rigs to capture the top-down view of the arena (Doric USB3 behavior camera, Sony IMX290, recorded with Doric Neuroscience Studio v6 software). The fluorescence from activity-dependent (GRAB-DA and GRAB-ACh) and activity-independent (isosbestic or mCherry) signals was acquired simultaneously via demodulation and downsampled on-the-fly by a factor of 25 to ~481.9 Hz.
+  keywords:
+    - decision making
+    - reinforcement learning
+    - hidden state inference
+    - fiber photometry
+  institution: NYU Center for Neural Science
+  lab: Constantinople
+  experimenter:
+    - Mah, Andrew
+Subject:
+  species: Rattus norvegicus
+  # age: in ISO 8601 format, updated automatically for each subject
+  # sex: One of M, F, U, or O, updated automatically for each subject
