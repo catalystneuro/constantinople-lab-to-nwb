@@ -52,16 +52,16 @@ From `J097_rDAgAChDMSDLS_20240820_HJJ_0000.doric`:
 
 `LockInAOUT02`:
     - `Time`: the time in seconds
-    - `AIN02`: motion corrected green signal (fiber 1)
-    - `AIN04`: motion corrected green signal (fiber 2)
+    - `AIN02`: estimated signal for green indicator (fiber 1)
+    - `AIN04`: estimated signal for green indicator (fiber 2)
 
 `LockInAOUT03`:
     - `Time`: the time in seconds
-    - `AIN01`: motion corrected mCherry signal (fiber 1)
+    - `AIN01`: estimated signal for mCherry (fiber 1)
 
 `LockInAOUT04`:
     - `Time`: the time in seconds
-    - `AIN03`: motion corrected mCherry signal (fiber 2)
+    - `AIN03`: estimated signal for mCherry (fiber 2)
 
 From `J069_ACh_20230809_HJJ_0002.doric`:
 
@@ -72,7 +72,7 @@ TODO: what is the channel mapping here?
 
 `AIN01xAOUT02-LockIn`:
     - `Time`: the time in seconds
-    - `Values`: motion corrected green signal
+    - `Values`: ???
 
 `AIN02xAOUT01-LockIn`:
     - `Time`: the time in seconds
@@ -80,7 +80,7 @@ TODO: what is the channel mapping here?
 
 `AIN02xAOUT02-LockIn`:
     - `Time`: the time in seconds
-    - `Values`: motion corrected signal
+    - `Values`: ???
 
 ### Fiber photometry metadata
 
@@ -99,21 +99,18 @@ For each `FiberPhotometryResponseSeries` that we add to NWB, we need to specify 
 Example:
 ```yaml
     FiberPhotometryResponseSeries:
-      - name: fiber_photometry_response_series
-        description: The raw fluorescence signal
-        channel_column_names: ["AIn-1 - Raw", "AIn-2 - Raw"]
+      - name: raw_fiber_photometry_signal
+        description: The raw fiber photometry signal before demodulation.
+        channel_column_names: ["AIn-1 - Raw", "AIn-2 - Raw", "AIn-3"]
         fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw fluorescence signal.
-      - name: fiber_photometry_response_series_isosbestic
-        description: The isosbestic signal
-        channel_column_names: ["AIn-3"]
-        fiber_photometry_table_region: [0]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the isosbestic signal.
-      - name: fiber_photometry_response_series_motion_corrected
-        description: The motion corrected signal
+        unit: a.u.
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
+      - name: estimated_fiber_photometry_response_series
+        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
         channel_column_names: ["AIn-1 - Dem (AOut-1)", "AIn-2 - Dem (AOut-2)"]
+        unit: a.u.
         fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
 ```
 
 The metadata file for the .doric files is named `doric_fiber_photometry_metadata.yaml` and it contains the following fields:
@@ -128,19 +125,109 @@ For each `FiberPhotometryResponseSeries` that we add to NWB, we need to specify 
 Example:
 ```yaml
     FiberPhotometryResponseSeries:
-      - name: fiber_photometry_response_series
-        description: The raw fluorescence signal # TBD
+      - name: raw_fiber_photometry_signal
+        description: The raw fiber photometry signal before demodulation.
         stream_names: ["AnalogIn/AIN01", "AnalogIn/AIN02", "AnalogIn/AIN03", "AnalogIn/AIN04"]
-        fiber_photometry_table_region: [0, 1, 2, 3] #[0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw fluorescence signal.
-      - name: fiber_photometry_response_series_isosbestic
-        description: The isosbestic signal # TBD
-        stream_names: ["LockInAOUT01/AIN02", "LockInAOUT01/AIN04"]
-        fiber_photometry_table_region: [0, 2]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the isosbestic signal.
-      - name: fiber_photometry_response_series_motion_corrected
-        description: The motion corrected signal # TBD
+        fiber_photometry_table_region: [0, 1, 2, 3]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
+        unit: a.u.
+      - name: estimated_fiber_photometry_response_series
+        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
         stream_names: ["LockInAOUT03/AIN01", "LockInAOUT04/AIN03", "LockInAOUT02/AIN02", "LockInAOUT02/AIN04"]
         fiber_photometry_table_region: [0, 1, 2, 3]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the motion corrected signal.
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
+        unit: a.u.
 ```
+
+Other example (J069_ACh_20230809_HJJ_0002.doric):
+
+Example:
+```yaml
+    FiberPhotometryResponseSeries:
+      - name: raw_fiber_photometry_signal
+        description: The raw fiber photometry signal from Doric acquisition system before demodulation.
+        stream_names: ["AnalogIn/AIN01", "AnalogIn/AIN02"]
+        unit: a.u.
+        fiber_photometry_table_region: [0, 1]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
+      - name: estimated_fiber_photometry_response_series
+        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
+        stream_names: ["AIN01xAOUT01-LockIn/Values", "AIN01xAOUT02-LockIn/Values", "AIN02xAOUT01-LockIn/Values", "AIN02xAOUT02-LockIn/Values"]
+        unit: a.u.
+        fiber_photometry_table_region: [0, 1, 0, 2]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
+
+```
+
+### Session start time
+
+The session start time is the reference time for all timestamps in the NWB file. We are using `session_start_time` from the Bpod output. (The start time of the session in the Bpod data can be accessed from the "Info" struct, with "SessionDate" and "SessionStartTime_UTC" fields.)
+
+### Bpod trial start time
+
+We are extracting the trial start times from the Bpod output using the "TrialStartTimestamp" field.
+
+```python
+ from pymatreader import read_mat
+
+ bpod_data = read_mat("raw_Bpod/J069/DataFiles/J069_RWTautowait2_20230809_131216.mat")["SessionData"] # should contain "SessionData" named struct
+
+ # The trial start times from the Bpod data
+ bpod_trial_start_times = bpod_data['TrialStartTimestamp']
+ ```
+
+```python
+bpod_trial_start_times[:7]
+>>> [ 11.4261, 104.5276, 146.0112, 203.5646, 211.7232, 215.3226, 224.041 ]
+```
+
+### Doric trial start time
+
+The trial start times from the Doric acquisition can be obtained from one of the digital signals ("DigitalIO/DIO02" in .doric file, "DI/O-2" in .csv file).
+
+```python
+import h5py
+from neuroconv.tools.signal_processing import get_rising_frames_from_ttl
+
+doric_file = h5py.File("J069_ACh_20230809_HJJ_0002.doric", mode="r")
+ttl_signal = doric_file["/DataAcquisition/FPConsole/Signals/Series0001/DigitalIO/DIO02"][:]
+timestamps = doric_file["/DataAcquisition/FPConsole/Signals/Series0001/DigitalIO/Time"][:]
+
+rising_frames_from_center_port_ttl = get_rising_frames_from_ttl(ttl_signal)
+num_trials = len(rising_frames_from_center_port_ttl)
+doric_trial_start_times = [timestamps[rising_frames_from_center_port_ttl][i] for i in range(num_trials)]
+```
+
+```python
+doric_trial_start_times[:7]
+>>> [17.11626, 110.21736, 151.702835, 209.255035, 217.41393499999998, 221.01406, 229.73321]
+```
+
+## Alignment
+
+We are aligning the starting time of the fiber photometry, video and DLC interfaces to the Bpod interface.
+
+We are computing the time shift from the Bpod trial start time to the Doric trial start time.
+
+For example, the computed time shift for this session:
+```python
+time_shift = bpod_trial_start_times[0] - doric_trial_start_times[0]
+>>> -5.6901600000000006
+```
+
+We are applying this time_shift to the timestamps for the raw fluorescence signals as:
+
+```python
+doric_timestamps = doric_file["/DataAcquisition/FPConsole/Signals/Series0001/AnalogIn/Time"][:]
+aligned_timestamps = doric_timestamps + time_shift
+```
+
+1) When the time shift is negative and the first aligned timestamp of the doric trace is negative:
+- shift back bpod (from every column that has a timestamp they have to be shifted back)
+- shift back session start time
+- don't have to move doric or video
+2) When the time shift is negative and the first aligned timestamp of the doric trace is positive
+- we move the doric and video backward
+3) When time shift is positive
+- we move the doric and video forward
+
