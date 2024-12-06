@@ -3,3 +3,5 @@ git+https://github.com/SpikeInterface/spikeinterface.git@main # pin until 0.101.
 neuroconv[openephys,phy]
 probeinterface
 pymatreader
+git+https://github.com/rly/ndx-structured-behavior.git@main
+openpyxl==3.1.5
