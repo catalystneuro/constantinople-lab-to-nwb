@@ -122,3 +122,7 @@ pip install jupyter
 cd src/constantinople_lab_to_nwb/schierek_embargo_2024/tutorials
 jupyter lab
 ```
+
+## Upload to the DANDI Archive
+
+Detailed instructions on how to upload the data to the DANDI archive can be found [here](dandi.md).
