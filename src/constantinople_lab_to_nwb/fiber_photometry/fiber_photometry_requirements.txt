@@ -1,2 +1,4 @@
 ndx-fiber-photometry==0.1.0
 neuroconv[deeplabcut,video]
+git+https://github.com/rly/ndx-structured-behavior.git@main
+openpyxl==3.1.5
