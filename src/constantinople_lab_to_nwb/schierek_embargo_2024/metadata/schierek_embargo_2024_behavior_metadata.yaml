@@ -42,6 +42,12 @@ Behavior:
       name: go_cue
     WaitForSidePoke:
       name: wait_for_side_poke
+    WaitForSidePoke_beforeStim:
+      name: wait_for_side_poke_before_stimulation
+    WaitForSidePoke_duringStim:
+      name: wait_for_side_poke_during_stimulation
+    WaitForSidePoke_afterStim:
+      name: wait_for_side_poke_after_stimulation
     PortOut:
       name: port_out
     AnnounceReward:
@@ -251,5 +257,25 @@ Behavior:
     TrialsStage8:
       name: num_trials_in_stage_8
       description: Determines how many trials occur in stage 8 before transition.
+      expression_type: integer
+      output_type: numeric
+    ProbOpto:
+      name: opto_probability
+      description: The probability of a trial being an optogenetic trial.
+      expression_type: double
+      output_type: numeric
+    IsOpto:
+      name: is_opto
+      description: Whether the trial is an optogenetic trial.
+      expression_type: boolean
+      output_type: boolean
+    ProbOptoEvent:
+      name: opto_event_probability
+      description: The probability of an optogenetic event occurring.
+      expression_type: double
+      output_type: numeric
+    OptoEvent:
+      name: opto_event_type
+      description: The type of optogenetic event. (1 = center port in, 2 = side port off, 3 = Reward or opt-out, 4 = stimulation on, 5 = delay)
       expression_type: integer
       output_type: numeric

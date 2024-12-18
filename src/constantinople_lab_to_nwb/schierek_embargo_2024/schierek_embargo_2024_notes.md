@@ -309,3 +309,27 @@ probe = probeinterface.read_openephys(
 )
 assert len(probe.contact_ids) == 384
 ```
+
+## Optogenetics protocol
+
+Some sessions may include optogenetic stimulation protocols. The stimulation onset times are retrieved
+from the Bpod data ("RWTautowait2OptoTest") from trials where the "OptoEvent" is 4 (stimulation on).
+
+The stimulation parameters should be updated in the `schierek_embargo_2024/metadata/schierek_embargo_2024_optogenetics_stimulation_metadata.yaml` file.
+
+```yaml
+Stimulus:
+   OptogeneticStimulusSite:
+     - name: optogenetic_stimulus_site
+       description: The site where the optogenetic stimulation was applied.
+       excitation_lambda: 465.0 # Excitation wavelength in nanometers.
+       location: DMS # The brain area where the stimulation was applied.
+   OptogeneticSeries:
+     name: optogenetic_series
+     site: optogenetic_stimulus_site
+     description: Notes on the optogenetic stimulation.
+     duration: 0.5 # Duration of the optogenetic stimulation in seconds.
+     frequency: 40.0 # Frequency of the optogenetic stimulation in Hz.
+     pulse_width: 0.005 # Pulse width of the optogenetic stimulation in seconds.
+     power: 0.0023 # Power of the optogenetic stimulation in W.
+```
