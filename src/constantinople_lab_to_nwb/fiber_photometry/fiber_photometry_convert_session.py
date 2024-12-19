@@ -14,9 +14,11 @@ from constantinople_lab_to_nwb.utils import get_subject_metadata_from_rat_info_f
 def session_to_nwb(
     raw_fiber_photometry_file_path: Union[str, Path],
     fiber_photometry_metadata: dict,
+    tmac_ch1_file_path: Union[str, Path],
     raw_behavior_file_path: Union[str, Path],
     subject_metadata: dict,
     nwbfile_path: Union[str, Path],
+    tmac_ch2_file_path: Optional[Union[str, Path]] = None,
     dlc_file_path: Optional[Union[str, Path]] = None,
     video_file_path: Optional[Union[str, Path]] = None,
     stub_test: bool = False,
@@ -31,12 +33,16 @@ def session_to_nwb(
         Path to the raw fiber photometry file (.doric or .csv).
     fiber_photometry_metadata : dict
         The metadata for the fiber photometry experiment setup.
+    tmac_ch1_file_path: Union[str, Path]
+        Path to the tmac .mat file for Ch1.
     subject_metadata: dict
         The dictionary containing the subject metadata. (e.g. {'date_of_birth': '2022-11-22', 'description': 'Vendor: OVR', 'sex': 'M'}
     raw_behavior_file_path : Union[str, Path]
         Path to the raw Bpod output (.mat file).
     nwbfile_path : Union[str, Path]
         Path to the NWB file.
+    tmac_ch2_file_path : Union[str, Path], optional
+        Path to the tmac .mat file for Ch2, by default None.
     dlc_file_path : Union[str, Path], optional
         Path to the DLC file, by default None.
     video_file_path : Union[str, Path], optional
@@ -68,6 +74,22 @@ def session_to_nwb(
 
     source_data.update({interface_name: dict(file_path=raw_fiber_photometry_file_path, verbose=verbose)})
     conversion_options.update({interface_name: dict(stub_test=stub_test)})
+
+    # Add processed fiber photometry data
+    source_data.update(
+        ProcessedFiberPhotometry=dict(
+            tmac_ch1_file_path=tmac_ch1_file_path,
+            tmac_ch2_file_path=tmac_ch2_file_path,
+            verbose=verbose,
+        ),
+    )
+    conversion_options.update(
+        dict(
+            ProcessedFiberPhotometry=dict(
+                doric_acquisition_signal_name="demodulated_fiber_photometry_signal",
+            )
+        )
+    )
 
     if dlc_file_path is not None:
         source_data.update(dict(DeepLabCut=dict(file_path=dlc_file_path)))
@@ -134,6 +156,15 @@ if __name__ == "__main__":
     fiber_photometry_metadata_file_path = Path(__file__).parent / "metadata" / "doric_fiber_photometry_metadata.yaml"
     fiber_photometry_metadata = load_dict_from_file(fiber_photometry_metadata_file_path)
 
+    # Processed fiber photometry file path(s)
+    ch1_tmac_file_path = Path(
+        "/Volumes/T9/Constantinople/Preprocessed_data/J069/tmac_ch1/J069_ACh_20230809_HJJ_tmac.mat"
+    )
+    # When there are two channels, ch2_tmac_file_path should be provided
+    ch2_tmac_file_path = Path(
+        "/Volumes/T9/Constantinople/Preprocessed_data/J069/tmac_ch2/J069_ACh_20230809_HJJ_tmac.mat"
+    )
+
     # The raw behavior data from Bpod (contains data for a single session)
     bpod_behavior_file_path = Path(
         "/Volumes/T9/Constantinople/raw_Bpod/J069/DataFiles/J069_RWTautowait2_20230809_131216.mat"
@@ -166,6 +197,8 @@ if __name__ == "__main__":
     session_to_nwb(
         raw_fiber_photometry_file_path=doric_fiber_photometry_file_path,
         fiber_photometry_metadata=fiber_photometry_metadata,
+        tmac_ch1_file_path=ch1_tmac_file_path,
+        tmac_ch2_file_path=ch2_tmac_file_path,
         raw_behavior_file_path=bpod_behavior_file_path,
         subject_metadata=subject_metadata,
         nwbfile_path=nwbfile_path,
