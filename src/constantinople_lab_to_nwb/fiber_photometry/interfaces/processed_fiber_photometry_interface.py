@@ -44,7 +44,7 @@ class ProcessedFiberPhotometryInterface(BaseDataInterface):
 
     def __init__(
         self,
-        tmac_ch1_file_path: Union[str, Path],
+        tmac_ch1_file_path: Optional[Union[str, Path]] = None,
         tmac_ch2_file_path: Optional[Union[str, Path]] = None,
         verbose: bool = True,
     ) -> None:
@@ -53,21 +53,31 @@ class ProcessedFiberPhotometryInterface(BaseDataInterface):
 
         Parameters
         ----------
-        tmac_ch1_file_path: Union[str, Path]
-            The path to tmac_ch1 .mat file.
+        tmac_ch1_file_path: Optional[Union[str, Path]]
+            The path to tmac_ch1 .mat file. Either 'tmac_ch1_file_path' or 'tmac_ch2_file_path' must be provided.
         tmac_ch2_file_path: Optional[Union[str, Path]]
             The path to the tmac_ch2 .mat file. (optional)
         verbose: bool
             Controls verbosity.
         """
-        tmac_ch1_file_path = Path(tmac_ch1_file_path)
-        assert tmac_ch1_file_path.exists(), f"The file '{tmac_ch1_file_path}' does not exist."
-        assert tmac_ch1_file_path.suffix == ".mat", f"Expected .mat file, got {tmac_ch1_file_path.suffix}."
+        if tmac_ch1_file_path is None and tmac_ch2_file_path is None:
+            raise ValueError("Either 'tmac_ch1_file_path' or 'tmac_ch2_file_path' must be provided.")
+
+        self._has_tmac_ch1_file_path = False
+        self._has_tmac_ch2_file_path = False
+
+        if tmac_ch1_file_path is not None:
+            tmac_ch1_file_path = Path(tmac_ch1_file_path)
+            assert tmac_ch1_file_path.exists(), f"The file '{tmac_ch1_file_path}' does not exist."
+            assert tmac_ch1_file_path.suffix == ".mat", f"Expected .mat file, got {tmac_ch1_file_path.suffix}."
+            self._has_tmac_ch1_file_path = True
 
         if tmac_ch2_file_path is not None:
             tmac_ch2_file_path = Path(tmac_ch2_file_path)
             assert tmac_ch2_file_path.exists(), f"The file '{tmac_ch2_file_path}' does not exist."
             assert tmac_ch2_file_path.suffix == ".mat", f"Expected .mat file, got {tmac_ch2_file_path.suffix}."
+            self._has_tmac_ch2_file_path = True
+
         super().__init__(tmac_ch1_file_path=tmac_ch1_file_path, tmac_ch2_file_path=tmac_ch2_file_path, verbose=verbose)
 
     def add_to_nwbfile(
@@ -92,39 +102,47 @@ class ProcessedFiberPhotometryInterface(BaseDataInterface):
         doric_acquisition_signal_name : str, optional
             The name of the raw signal from Doric. Default is "demodulated_fiber_photometry_signal".
         """
-        tmac_ch1_data = read_mat(filename=self.source_data["tmac_ch1_file_path"])
+        # find the source data file path that is not None
+        # Consider sessions that might have only ch2 tmac file
+        tmac_channels_data = []
+        if self._has_tmac_ch1_file_path:
+            tmac_channels_data.append(read_mat(filename=self.source_data["tmac_ch1_file_path"]))
+        if self._has_tmac_ch2_file_path:
+            tmac_channels_data.append(read_mat(filename=self.source_data["tmac_ch2_file_path"]))
+        if len(tmac_channels_data) == 0:
+            raise ValueError("No tmac file paths were provided.")
 
         # Not all tmac files have the same signal names, so we need to fetch them using regex matching
         estimated_motion_pattern = r"^estimated_motion"
         estimated_motion_column_name = fetch_matching_key_from_mat(
-            tmac_ch1_data,
+            tmac_channels_data[0],
             pattern=estimated_motion_pattern,
             expected_key="estimated_motion",
         )
 
         estimated_signal_pattern = r"^estimated_signal"
         estimated_signal_column_name = fetch_matching_key_from_mat(
-            tmac_ch1_data,
+            tmac_channels_data[0],
             pattern=estimated_signal_pattern,
             expected_key="estimated_signal",
         )
 
         mc_pattern = r"^g.*_mc$"
         mc_column_name = fetch_matching_key_from_mat(
-            tmac_ch1_data,
+            tmac_channels_data[0],
             pattern=mc_pattern,
             expected_key="green_mc",
         )
 
         photobleach_green_pattern = r"^(gfp|green)$"
         photobleach_green_column_name = fetch_matching_key_from_mat(
-            tmac_ch1_data,
+            tmac_channels_data[0],
             pattern=photobleach_green_pattern,
             expected_key="green",
         )
         photobleach_red_pattern = r"^(red|mcherry)$"
         photobleach_red_column_name = fetch_matching_key_from_mat(
-            tmac_ch1_data,
+            tmac_channels_data[0],
             pattern=photobleach_red_pattern,
             expected_key="red",
         )
@@ -137,10 +155,6 @@ class ProcessedFiberPhotometryInterface(BaseDataInterface):
             # The name of the photobleach corrected signals in the tmac files
             photobleach_corrected_signal=[photobleach_green_column_name, photobleach_red_column_name],
         )
-
-        tmac_ch2_data = None
-        if self.source_data["tmac_ch2_file_path"] is not None:
-            tmac_ch2_data = read_mat(filename=self.source_data["tmac_ch2_file_path"])
 
         raw_signal = nwbfile.get_acquisition(doric_acquisition_signal_name)
         timestamps = raw_signal.timestamps[:] if raw_signal is not None else timestamps
@@ -172,16 +186,12 @@ class ProcessedFiberPhotometryInterface(BaseDataInterface):
 
             traces_to_add = []
             for tmac_signal_name in tmac_signal_names:
-                if tmac_signal_name not in tmac_ch1_data.keys():
-                    raise ValueError(
-                        f"Trace '{tmac_signal_name}' not found in '{self.source_data['tmac_ch1_file_path']}'."
-                    )
-                ch1_trace = tmac_ch1_data[tmac_signal_name]
-                traces_to_add.append(ch1_trace)
-
-                if tmac_signal_name in tmac_ch2_data.keys():
-                    ch2_trace = tmac_ch2_data[tmac_signal_name]
-                    traces_to_add.append(ch2_trace)
+                for tmac_data in tmac_channels_data:
+                    tmac_data_keys = list(tmac_data.keys())
+                    if tmac_signal_name not in tmac_data_keys:
+                        raise ValueError(f"Trace '{tmac_signal_name}' not found in '{tmac_data_keys}'.")
+                    trace = tmac_data[tmac_signal_name]
+                    traces_to_add.append(trace)
 
             traces = np.vstack(traces_to_add).T
 
