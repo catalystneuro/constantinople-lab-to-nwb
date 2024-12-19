@@ -14,10 +14,10 @@ from constantinople_lab_to_nwb.utils import get_subject_metadata_from_rat_info_f
 def session_to_nwb(
     raw_fiber_photometry_file_path: Union[str, Path],
     fiber_photometry_metadata: dict,
-    tmac_ch1_file_path: Union[str, Path],
     raw_behavior_file_path: Union[str, Path],
     subject_metadata: dict,
     nwbfile_path: Union[str, Path],
+    tmac_ch1_file_path: Optional[Union[str, Path]] = None,
     tmac_ch2_file_path: Optional[Union[str, Path]] = None,
     dlc_file_path: Optional[Union[str, Path]] = None,
     video_file_path: Optional[Union[str, Path]] = None,
@@ -33,14 +33,14 @@ def session_to_nwb(
         Path to the raw fiber photometry file (.doric or .csv).
     fiber_photometry_metadata : dict
         The metadata for the fiber photometry experiment setup.
-    tmac_ch1_file_path: Union[str, Path]
-        Path to the tmac .mat file for Ch1.
     subject_metadata: dict
         The dictionary containing the subject metadata. (e.g. {'date_of_birth': '2022-11-22', 'description': 'Vendor: OVR', 'sex': 'M'}
     raw_behavior_file_path : Union[str, Path]
         Path to the raw Bpod output (.mat file).
     nwbfile_path : Union[str, Path]
         Path to the NWB file.
+    tmac_ch1_file_path: Union[str, Path]
+        Path to the tmac .mat file for Ch1, by default None.
     tmac_ch2_file_path : Union[str, Path], optional
         Path to the tmac .mat file for Ch2, by default None.
     dlc_file_path : Union[str, Path], optional
@@ -76,6 +76,8 @@ def session_to_nwb(
     conversion_options.update({interface_name: dict(stub_test=stub_test)})
 
     # Add processed fiber photometry data
+    if tmac_ch1_file_path is None and tmac_ch2_file_path is None:
+        raise ValueError("Either 'tmac_ch1_file_path' or 'tmac_ch2_file_path' must be provided.")
     source_data.update(
         ProcessedFiberPhotometry=dict(
             tmac_ch1_file_path=tmac_ch1_file_path,
@@ -150,36 +152,30 @@ if __name__ == "__main__":
     # Parameters for conversion
     # Fiber photometry file path
     doric_fiber_photometry_file_path = Path(
-        "/Volumes/T9/Constantinople/Preprocessed_data/J069/Raw/J069_ACh_20230809_HJJ_0002.doric"
+        "/Volumes/T9/Constantinople/Preprocessed_data/G026/Raw/G026_DA_20210528_CEG_0000.csv"
     )
     # Update default metadata with the editable in the corresponding yaml file
     fiber_photometry_metadata_file_path = Path(__file__).parent / "metadata" / "doric_fiber_photometry_metadata.yaml"
     fiber_photometry_metadata = load_dict_from_file(fiber_photometry_metadata_file_path)
 
     # Processed fiber photometry file path(s)
-    ch1_tmac_file_path = Path(
-        "/Volumes/T9/Constantinople/Preprocessed_data/J069/tmac_ch1/J069_ACh_20230809_HJJ_tmac.mat"
-    )
+    ch1_tmac_file_path = None
     # When there are two channels, ch2_tmac_file_path should be provided
     ch2_tmac_file_path = Path(
-        "/Volumes/T9/Constantinople/Preprocessed_data/J069/tmac_ch2/J069_ACh_20230809_HJJ_tmac.mat"
+        "/Volumes/T9/Constantinople/Preprocessed_data/G026/tmac_ch2/G026_DA_20210528_CEG_tmac.mat"
     )
 
     # The raw behavior data from Bpod (contains data for a single session)
     bpod_behavior_file_path = Path(
-        "/Volumes/T9/Constantinople/raw_Bpod/J069/DataFiles/J069_RWTautowait2_20230809_131216.mat"
+        "/Volumes/T9/Constantinople/raw_Bpod/G026/DataFiles/G026_RWTautowait2_20210528_101504.mat"
     )
 
     # DLC file path (optional)
-    dlc_file_path = Path(
-        "/Volumes/T9/Constantinople/DeepLabCut/J069/J069-2023-08-09_rig104cam01_0002compDLC_resnet50_GRAB_DA_DMS_RIG104DoricCamera_J029May12shuffle1_500000.h5"
-    )
+    dlc_file_path = None
     # Behavior video file path (optional)
-    behavior_video_file_path = Path(
-        "/Volumes/T9/Constantinople/Compressed Videos/J069/J069-2023-08-09_rig104cam01_0002comp.mp4"
-    )
+    behavior_video_file_path = None
     # NWB file path
-    nwbfile_path = Path("/Users/weian/data/demo/J069_ACh_20230809_HJJ_0002.nwb")
+    nwbfile_path = Path("/Users/weian/data/demo/G026_DA_20210528_CEG_0000.nwb")
     if not nwbfile_path.parent.exists():
         os.makedirs(nwbfile_path.parent, exist_ok=True)
 
@@ -190,8 +186,8 @@ if __name__ == "__main__":
     rat_registry_folder_path = "/Volumes/T9/Constantinople/Rat_info"
     subject_metadata = get_subject_metadata_from_rat_info_folder(
         folder_path=rat_registry_folder_path,
-        subject_id="J069",
-        date="2023-08-09",
+        subject_id="G026",
+        date="2021-05-28",
     )
 
     session_to_nwb(
