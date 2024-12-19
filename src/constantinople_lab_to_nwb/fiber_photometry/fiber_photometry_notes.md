@@ -23,140 +23,82 @@ The .csv files contain the following columns:
 
 `Time(s)` - the time in seconds
 `AIn-1 - Dem (AOut-1)` - the demodulated signal from the activity-independent channel
-`AIn-1 - Raw` - the raw signal from the activity-independent channel
 `AIn-2 - Dem (AOut-2)` - the demodulated signal from the activity-dependent channel
-`AIn-2 - Raw` - the raw signal from the activity-dependent channel
-`AIn-3` - the isosbestic signal
 
 The .doric files contain the following fields:
-
-![doric-example](https://private-user-images.githubusercontent.com/24475788/370304059-9858d9e1-f7d5-484c-b587-1acd093db504.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MzIwOTcwMDQsIm5iZiI6MTczMjA5NjcwNCwicGF0aCI6Ii8yNDQ3NTc4OC8zNzAzMDQwNTktOTg1OGQ5ZTEtZjdkNS00ODRjLWI1ODctMWFjZDA5M2RiNTA0LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDExMjAlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQxMTIwVDA5NTgyNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTYxOWJmMDk4ZTE4NDdkYTBmMjE0Y2MyNGFmMGE1ODIyYzA2ODRlYTdhMjQzMjU0YTY5M2EzNTUxYzZlMzUxZDEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.Aqt7bOsIMSGz7GKK_ttIjxpihAuzzUSCxxG3XqpVWPc)
-
-For each channel group (e.g. "AnalogIn", "LockInAOUT") the timestamps for the fluosrescence signals can be accessed using the "Time" field.
-The "AnalogIn" channel group contains the raw signals and the "LockIn" channel groups contain the demodulated signals.
-
-`AnalogIn`:
-    - `AIN01` - raw mCherry signal
-    - `AIN02` - raw green signal
-For dual-fiber experiments the following channels are also present:
-    - `AIN03` - raw mCherry signal (fiber 2)
-    - `AIN04` - raw green signal (fiber 2)
-
-The channels in the "LockIn" channel group can be different from session to session. Here is an example of the channel mapping for a session:
 
 From `J097_rDAgAChDMSDLS_20240820_HJJ_0000.doric`:
 `LockInAOUT01`:
     - `Time`: the time in seconds
-    - `AIN02`: isosbestic signal (fiber 1)
-    - `AIN04`: isobestic signal (fiber 2)
+    - `AIN02`: isosbestic signal (cord A)
+    - `AIN04`: isobestic signal (cord B)
 
 `LockInAOUT02`:
     - `Time`: the time in seconds
-    - `AIN02`: estimated signal for green indicator (fiber 1)
-    - `AIN04`: estimated signal for green indicator (fiber 2)
+    - `AIN02`: demodulated signal for green indicator (cord A)
+    - `AIN04`: demodulated signal for green indicator (cord B)
 
 `LockInAOUT03`:
     - `Time`: the time in seconds
-    - `AIN01`: estimated signal for mCherry (fiber 1)
+    - `AIN01`: demodulated signal for mCherry (cord A)
 
 `LockInAOUT04`:
     - `Time`: the time in seconds
-    - `AIN03`: estimated signal for mCherry (fiber 2)
+    - `AIN03`: demodulated signal for mCherry (cord B)
 
-From `J069_ACh_20230809_HJJ_0002.doric`:
+We are adding the demodulated signals from the .doric files to NWB as `FiberPhotometryResponseSeries`.
+See the tutorial how these signals can be accessed in the NWB file [here](https://github.com/catalystneuro/constantinople-lab-to-nwb/blob/158a51dbcaa9b41d556acab39fe3a137754fedfe/src/constantinople_lab_to_nwb/fiber_photometry/tutorials/fiber_photometry_example_notebook.ipynb).
 
-TODO: what is the channel mapping here?
-`AIN01xAOUT01-LockIn`:
-    - `Time`: the time in seconds
-    - `Values`: the isosbestic signal
+### Processed fiber photometry data
 
-`AIN01xAOUT02-LockIn`:
-    - `Time`: the time in seconds
-    - `Values`: ???
+The processed fiber photometry data are stored in a `tmac.mat` files (separately for ch1 and ch2). The processed data contains the following fields:
 
-`AIN02xAOUT01-LockIn`:
-    - `Time`: the time in seconds
-    - `Values`: the isosbestic signal
+`estimated_motion` – output of tmac, normalized and motion corrected red signal (1 x session time points)
+`estimated_signal` – output of tmac, normalized signal from green, z-scored (1 x session time points)
+`green` – photobleached-corrected green signal
+`green_mc` – estimated_signal un-normalized
+`red` – photobleached-correct red signal
 
-`AIN02xAOUT02-LockIn`:
-    - `Time`: the time in seconds
-    - `Values`: ???
+The processed data is added to NWB as `FiberPhotometryProcessedSeries`.
+The photobleach-corrected signals (`green` and `red`) are added as `photobleach_corrected_signal`, the un-normalized
+estimated signal (`green_mc`) is added as `estimated_signal`, and the normalized and motion-corrected signals (`estimated_signal`, `estimated_motion`) are added as `normalized_estimated_signals`.
+See the tutorial how these signals can be accessed in the NWB file  [here](https://github.com/catalystneuro/constantinople-lab-to-nwb/blob/158a51dbcaa9b41d556acab39fe3a137754fedfe/src/constantinople_lab_to_nwb/fiber_photometry/tutorials/fiber_photometry_example_notebook.ipynb).
 
 ### Fiber photometry metadata
 
 The metadata for the fiber photometry data is stored in a `.yaml` file. The metadata contains information about the
 fiber photometry setup, such as the LED wavelengths, dichroic mirror, and filter settings.
 
-The metadata file for the .csv files is named `doric_csv_fiber_photometry_metadata.yaml` and it contains the following fields:
+The metadata file is named `doric_fiber_photometry_metadata.yaml` and it contains the following fields:
 
 For each `FiberPhotometryResponseSeries` that we add to NWB, we need to specify the following fields:
 - `name` - the name of the FiberPhotometryResponseSeries
 - `description` - a description of the FiberPhotometryResponseSeries
-- `channel_column_names` - the names of the columns in the .csv file that correspond to the fluorescence signals
-- `fiber_photometry_table_region` - the region of the FiberPhotometryTable corresponding to the fluorescence signals
+- `fiber_photometry_table_region` - the region of the FiberPhotometryTable corresponding to the signals
 - `fiber_photometry_table_region_description` - a description of the region of the FiberPhotometryTable corresponding to the fluorescence signals
+- `stream_names` - the names of the streams in the .doric file that correspond to the fluorescence signals (should only be specified for the demodulated signal)
 
 Example:
 ```yaml
     FiberPhotometryResponseSeries:
-      - name: raw_fiber_photometry_signal
-        description: The raw fiber photometry signal before demodulation.
-        channel_column_names: ["AIn-1 - Raw", "AIn-2 - Raw", "AIn-3"]
-        fiber_photometry_table_region: [0, 1]
-        unit: a.u.
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
-      - name: estimated_fiber_photometry_response_series
-        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
-        channel_column_names: ["AIn-1 - Dem (AOut-1)", "AIn-2 - Dem (AOut-2)"]
-        unit: a.u.
-        fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
-```
-
-The metadata file for the .doric files is named `doric_fiber_photometry_metadata.yaml` and it contains the following fields:
-
-For each `FiberPhotometryResponseSeries` that we add to NWB, we need to specify the following fields:
-- `name` - the name of the FiberPhotometryResponseSeries
-- `description` - a description of the FiberPhotometryResponseSeries
-- `stream_names` - the names of the streams in the .doric file that correspond to the fluorescence signals
-- `fiber_photometry_table_region` - the region of the FiberPhotometryTable corresponding to the fluorescence signals
-- `fiber_photometry_table_region_description` - a description of the region of the FiberPhotometryTable corresponding to the fluorescence signals
-
-Example:
-```yaml
-    FiberPhotometryResponseSeries:
-      - name: raw_fiber_photometry_signal
-        description: The raw fiber photometry signal before demodulation.
-        stream_names: ["AnalogIn/AIN01", "AnalogIn/AIN02", "AnalogIn/AIN03", "AnalogIn/AIN04"]
-        fiber_photometry_table_region: [0, 1, 2, 3]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
-        unit: a.u.
-      - name: estimated_fiber_photometry_response_series
-        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
+      - name: demodulated_fiber_photometry_signal
+        description: The demodulated signals from Doric.
         stream_names: ["LockInAOUT03/AIN01", "LockInAOUT04/AIN03", "LockInAOUT02/AIN02", "LockInAOUT02/AIN04"]
         fiber_photometry_table_region: [0, 1, 2, 3]
         fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
         unit: a.u.
 ```
 
-Other example (J069_ACh_20230809_HJJ_0002.doric):
-
+Other example (G006_DA_20200616_CEG_0.csv)
 Example:
 ```yaml
     FiberPhotometryResponseSeries:
-      - name: raw_fiber_photometry_signal
-        description: The raw fiber photometry signal from Doric acquisition system before demodulation.
-        stream_names: ["AnalogIn/AIN01", "AnalogIn/AIN02"]
+      - name: demodulated_fiber_photometry_signal
+        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
+        stream_names: ["AIn-1 - Dem (AOut-1)", "AIn-2 - Dem (AOut-2)"]
         unit: a.u.
         fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
-      - name: estimated_fiber_photometry_response_series
-        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
-        stream_names: ["AIN01xAOUT01-LockIn/Values", "AIN01xAOUT02-LockIn/Values", "AIN02xAOUT01-LockIn/Values", "AIN02xAOUT02-LockIn/Values"]
-        unit: a.u.
-        fiber_photometry_table_region: [0, 1, 0, 2]
         fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
-
 ```
 
 ### Session start time
@@ -230,4 +172,3 @@ aligned_timestamps = doric_timestamps + time_shift
 - we move the doric and video backward
 3) When time shift is positive
 - we move the doric and video forward
-

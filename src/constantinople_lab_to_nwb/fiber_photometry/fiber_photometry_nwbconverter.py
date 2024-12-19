@@ -7,6 +7,7 @@ from neuroconv.datainterfaces import DeepLabCutInterface, VideoInterface
 from constantinople_lab_to_nwb.fiber_photometry.interfaces import (
     DoricFiberPhotometryInterface,
     DoricCsvFiberPhotometryInterface,
+    ProcessedFiberPhotometryInterface,
 )
 from constantinople_lab_to_nwb.general_interfaces import BpodBehaviorInterface
 from neuroconv.datainterfaces.behavior.deeplabcut._dlc_utils import _get_movie_timestamps
@@ -20,6 +21,7 @@ class FiberPhotometryNWBConverter(NWBConverter):
         DeepLabCut=DeepLabCutInterface,
         FiberPhotometryDoric=DoricFiberPhotometryInterface,
         FiberPhotometryCsv=DoricCsvFiberPhotometryInterface,
+        ProcessedFiberPhotometry=ProcessedFiberPhotometryInterface,
         Video=VideoInterface,
         Behavior=BpodBehaviorInterface,
     )
@@ -33,7 +35,7 @@ class FiberPhotometryNWBConverter(NWBConverter):
         else:
             fiber_photometry_interface = self.data_interface_objects["FiberPhotometryCsv"]
             digital_stream_names = ["DI/O-1", "DI/O-2"]
-            ttl_signals = fiber_photometry_interface._get_traces(channel_column_names=digital_stream_names)
+            ttl_signals = fiber_photometry_interface._get_traces(stream_names=digital_stream_names)
             timestamps = fiber_photometry_interface.get_original_timestamps()
 
         raw_behavior_interface = self.data_interface_objects["Behavior"]
@@ -56,7 +58,7 @@ class FiberPhotometryNWBConverter(NWBConverter):
         else:
             fiber_photometry_interface = self.data_interface_objects["FiberPhotometryCsv"]
             digital_stream_names = ["DI/O-1", "DI/O-2"]
-            ttl_signals = fiber_photometry_interface._get_traces(channel_column_names=digital_stream_names)
+            ttl_signals = fiber_photometry_interface._get_traces(stream_names=digital_stream_names)
             timestamps = fiber_photometry_interface.get_original_timestamps()
 
         raw_behavior_interface = self.data_interface_objects["Behavior"]

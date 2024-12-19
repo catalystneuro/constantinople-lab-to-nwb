@@ -147,16 +147,26 @@ def add_fiber_photometry_response_series(
     fiber_photometry_table = nwbfile.lab_meta_data["FiberPhotometry"].fiber_photometry_table
     assert fiber_photometry_table is not None, "'FiberPhotometryTable' not found in lab meta data."
 
+    trace_name = trace_metadata["name"]
+    region = list(trace_metadata["fiber_photometry_table_region"])
+    if traces.shape[1] != len(region):
+        raise ValueError(
+            f"The number of traces ({traces.shape[1]}) in {trace_name} should match the number of rows referenced in the fiber photometry table ({len(region)})."
+        )
+    fiber_photometry_table_region_description = trace_metadata.get(
+        "fiber_photometry_table_region_description",
+        f"The region of the FiberPhotometryTable corresponding to {trace_metadata['name']} signal.",
+    )
     fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
-        description=trace_metadata["fiber_photometry_table_region_description"],
-        region=list(trace_metadata["fiber_photometry_table_region"]),
+        description=fiber_photometry_table_region_description,
+        region=region,
     )
 
     if traces.shape[0] != len(timestamps):
         raise ValueError(f"Length of traces ({len(traces)}) and timestamps ({len(timestamps)}) should be equal.")
 
     fiber_photometry_response_series = FiberPhotometryResponseSeries(
-        name=trace_metadata["name"],
+        name=trace_name,
         description=trace_metadata["description"],
         data=SliceableDataChunkIterator(data=traces),
         unit=trace_metadata["unit"],

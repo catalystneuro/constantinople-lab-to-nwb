@@ -11,62 +11,44 @@ Ophys:
         numerical_aperture: 0.5
         core_diameter_in_um: 400.0
     ExcitationSources: # Can't find any information in the referred papers
-      - name: excitation_source_grab_da
-        description: The excitation wavelength for GRAB-DA indicator.
+      - name: excitation_source_gfp
+        description: The excitation wavelength for gfp indicator.
         manufacturer: Doric Lenses
-        # model: TBD
-        illumination_type: LED
-        excitation_wavelength_in_nm: 470.0
-      - name: excitation_source_grab_ach
-        description: The excitation wavelength for GRAB-ACh indicator.
-        manufacturer: Doric Lenses
-        # model: TBD
+        # model: unknown
         illumination_type: LED
         excitation_wavelength_in_nm: 470.0
       - name: excitation_source_mcherry
         description: The excitation wavelength for mCherry indicator.
         manufacturer: Doric Lenses
-        # model: TBD
+        # model: unknown
         illumination_type: LED
-        excitation_wavelength_in_nm: 405.0
-      - name: excitation_source_grab_da_isosbestic
-        description: The isosbestic point for GRAB-DA indicator.
+        excitation_wavelength_in_nm: 560.0
+      - name: excitation_source_gfp_isosbestic
+        description: The isosbestic point for gfp indicator.
         manufacturer: Doric Lenses
-        # model: TBD
-        illumination_type: LED
-        excitation_wavelength_in_nm: 405.0
-      - name: excitation_source_grab_ach_isosbestic
-        description: The isosbestic point for GRAB-ACh indicator.
-        manufacturer: Doric Lenses
-        # model: TBD
+        # model: unknown
         illumination_type: LED
         excitation_wavelength_in_nm: 405.0
     Photodetectors: # Can't find any information in the referred papers
       - name: photodetector
-        # description: TBD
+        # description: unknown
         manufacturer: Doric Lenses
-        # model: TBD
+        # model: unknown
         detector_type: photodiode
-        detected_wavelength_in_nm: 470.0 # TBD
-        # gain: # TBD
+        detected_wavelength_in_nm: 470.0 # unknown
+        # gain: # unknown
     DichroicMirrors: # Can't find any information in the referred papers
       - name: dichroic_mirror
         # description: TBD
         manufacturer: Doric Lenses
         # model: TBD
     Indicators:
-      - name: grab_da
-        description: "To measure dopamine activity, AAV9-hsyn-GRAB DA2h (AddGene #140554) was injected into the DMS."
-        manufacturer: Addgene
-        label: AAV9-hsyn-GRAB-DA2h
-        injection_location: DMS
-        injection_coordinates_in_mm: [-0.4, -3.5, -4.6]
-      - name: grab_ach
+      - name: gfp
         description: "To measure acetylcholine activity, AAV9-hSyn-ACh4.3 (WZ Biosciences #YL10002) was injected into the DMS."
         manufacturer: WZ Biosciences
         label: AAV9-hSyn-ACh4.3
         injection_location: DMS
-        injection_coordinates_in_mm: [1.7, -2.8, -4.3]
+        # injection_coordinates_in_mm: [1.7, -2.8, -4.3]
       - name: mcherry
         description: "The control fluorophore AAV9-CB7-CI-mCherry-WPRE-RBG (AddGene #105544)"
         label: AAV1-CB7-CI-mCherry
@@ -77,38 +59,65 @@ Ophys:
       description: The metadata of the fiber photometry setup.
       rows:
         - name: 0
-          location: DMS
-          # coordinates: [0.8, 1.5, 2.8]
+          location: DLS
+          indicator: gfp
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_gfp
+          photodetector: photodetector
+          dichroic_mirror: dichroic_mirror
+        - name: 1
+          location: DLS
           indicator: mcherry
           optical_fiber: optical_fiber
           excitation_source: excitation_source_mcherry
           photodetector: photodetector
           dichroic_mirror: dichroic_mirror
-        - name: 1
-          location: DMS
-          # coordinates: [0.8, 1.5, 2.8]
-          indicator: grab_ach
+        - name: 2
+          location: DLS
+          indicator: gfp
           optical_fiber: optical_fiber
-          excitation_source: excitation_source_grab_ach
+          excitation_source: excitation_source_gfp_isosbestic
           photodetector: photodetector
           dichroic_mirror: dichroic_mirror
-        - name: 2
+        - name: 3
           location: DMS
-          indicator: grab_ach
+          indicator: gfp
           optical_fiber: optical_fiber
-          excitation_source: excitation_source_grab_ach_isosbestic
+          excitation_source: excitation_source_gfp
+          photodetector: photodetector
+          dichroic_mirror: dichroic_mirror
+        - name: 4
+          location: DMS
+          indicator: mcherry
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_mcherry
+          photodetector: photodetector
+          dichroic_mirror: dichroic_mirror
+        - name: 5
+          location: DMS
+          indicator: gfp
+          optical_fiber: optical_fiber
+          excitation_source: excitation_source_gfp_isosbestic
           photodetector: photodetector
           dichroic_mirror: dichroic_mirror
     FiberPhotometryResponseSeries:
-      - name: raw_fiber_photometry_signal
-        description: The raw fiber photometry signal from Doric acquisition system before demodulation. # TBD
-        stream_names: ["AnalogIn/AIN01", "AnalogIn/AIN02"]
+      - name: demodulated_fiber_photometry_signal
+        description: The demodulated signals from Doric.
+        # LockInAOUT02/AIN02 - cord A green; LockInAOUT03/AIN01 - cord A red; LockInAOUT01/AIN02 cord A green isosbestic
+        # LockInAOUT02/AIN04 - cord B green; LockInAOUT04/AIN03 - cord B red; LockInAOUT01/AIN04 cord B green isosbestic
+        stream_names: ["LockInAOUT02/AIN02", "LockInAOUT03/AIN01", "LockInAOUT01/AIN02", "LockInAOUT02/AIN04", "LockInAOUT04/AIN03", "LockInAOUT01/AIN04"]
         unit: a.u.
-        fiber_photometry_table_region: [0, 1]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the raw signal.
-      - name: estimated_fiber_photometry_response_series
-        description: The demodulated (estimated) signal from light stimulation using a proprietary algorithm from Doric.
-        stream_names: ["AIN01xAOUT01-LockIn/Values", "AIN01xAOUT02-LockIn/Values", "AIN02xAOUT01-LockIn/Values", "AIN02xAOUT02-LockIn/Values"]
+        fiber_photometry_table_region: [0, 1, 2, 3, 4, 5]
+        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the demodulated signal.
+      - name: normalized_estimated_signal
+        description: The normalized and motion corrected signals.
         unit: a.u.
-        fiber_photometry_table_region: [0, 1, 0, 2]
-        fiber_photometry_table_region_description: The region of the FiberPhotometryTable corresponding to the estimated signal.
+        fiber_photometry_table_region: [0, 1, 3, 4]
+      - name: estimated_signal
+        description: The estimated signal un-normalized.
+        unit: a.u.
+        fiber_photometry_table_region: [0, 3]
+      - name: photobleach_corrected_signal
+        description: The photobleached-corrected signals.
+        unit: a.u.
+        fiber_photometry_table_region: [0, 1, 3, 4]
