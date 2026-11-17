@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List
+from typing import Dict, List, Union
 from warnings import warn
 
 import pandas as pd
@@ -9,9 +9,11 @@ from pymatreader import read_mat
 from tqdm import tqdm
 
 from constantinople_lab_to_nwb.mah_2024.mah_2024_convert_session import (
+    COLUMN_DESCRIPTIONS,
+    COLUMN_NAME_MAPPING,
     session_to_nwb,
-    get_subject_metadata_from_rat_info_folder,
 )
+from constantinople_lab_to_nwb.utils import get_subject_metadata_from_rat_info_folder
 
 import warnings
 
@@ -116,6 +118,56 @@ def _get_date_index(bpod_file_path: Union[str, Path], a_struct_file_path: Union[
     return filtered_dates_and_trials.index[0]
 
 
+def _get_date_index_per_session(
+    bpod_file_paths: List[Union[str, Path]], a_struct_file_path: Union[str, Path]
+) -> Dict[Path, int]:
+    """
+    Match each raw Bpod file to its session (date index) in the processed behavior file.
+
+    Raw Bpod files that are not found in the processed behavior file are skipped.
+    When more than one raw Bpod file matches the same session (e.g. a copy of the file saved with a suffix),
+    only the first file in alphabetical order is kept.
+
+    Parameters
+    ----------
+    bpod_file_paths: List[Union[str, Path]]
+        The paths to the raw Bpod output files (.mat) of a single subject.
+    a_struct_file_path: Union[str, Path]
+        Path to the processed behavior data (.mat file).
+
+    Returns
+    -------
+    Dict[Path, int]
+        The date index in the processed behavior file for each raw Bpod file to convert.
+    """
+    date_index_per_session = dict()
+    bpod_file_path_per_date_index = dict()
+    for bpod_file_path in sorted(Path(file_path) for file_path in bpod_file_paths):
+        date_index = _get_date_index(bpod_file_path=bpod_file_path, a_struct_file_path=a_struct_file_path)
+        if date_index is None:
+            print(f"Skipping '{bpod_file_path.name}', session not found in the processed behavior file.")
+            continue
+        if date_index in bpod_file_path_per_date_index:
+            warn(
+                f"Skipping '{bpod_file_path.name}', it matches the same session in '{a_struct_file_path}' as "
+                f"'{bpod_file_path_per_date_index[date_index].name}'."
+            )
+            continue
+        bpod_file_path_per_date_index[date_index] = bpod_file_path
+        date_index_per_session[bpod_file_path] = date_index
+
+    return date_index_per_session
+
+
+def _get_session_date(session_id: str) -> str:
+    """
+    Get the date of the session in the format "yyyy-mm-dd" from the session identifier
+    (e.g. "RWTautowait2-20221004-095612" returns "2022-10-04").
+    """
+    date_from_session_id = session_id.split("-")[1]
+    return datetime.strptime(date_from_session_id, "%Y%m%d").strftime("%Y-%m-%d")
+
+
 def sessions_to_nwb(
     raw_behavior_folder_path: Union[str, Path],
     processed_behavior_folder_path: Union[str, Path],
@@ -162,7 +214,11 @@ def sessions_to_nwb(
     }
 
     for subject_id, processed_behavior_file_path in zip(subject_ids, processed_mat_files):
-        raw_bpod_file_paths = sessions_to_convert_per_subject[subject_id]
+        date_index_per_session = _get_date_index_per_session(
+            bpod_file_paths=sessions_to_convert_per_subject[subject_id],
+            a_struct_file_path=processed_behavior_file_path,
+        )
+        raw_bpod_file_paths = list(date_index_per_session.keys())
         num_sessions_per_subject = len(raw_bpod_file_paths)
         progress_bar = tqdm(
             raw_bpod_file_paths,
@@ -182,21 +238,11 @@ def sessions_to_nwb(
             if nwbfile_path.exists() and not overwrite:
                 continue
 
-            date_index = _get_date_index(
-                bpod_file_path=raw_behavior_file_path, a_struct_file_path=processed_behavior_file_path
-            )
-            if date_index is None:
-                print(
-                    f"Skipping '{subject_id}' session '{session_id}', session not found in the processed behavior file."
-                )
-                continue
-
-            date_from_mat = session_id.split("-")[1]
-            date_obj = datetime.strptime(date_from_mat, "%Y%d%M")
+            date_index = date_index_per_session[raw_behavior_file_path]
             subject_metadata = get_subject_metadata_from_rat_info_folder(
                 folder_path=rat_info_folder_path,
                 subject_id=subject_id,
-                date=date_obj.strftime("%Y-%m-%d"),
+                date=_get_session_date(session_id=session_id),
             )
 
             session_to_nwb(
@@ -204,8 +250,8 @@ def sessions_to_nwb(
                 processed_behavior_file_path=processed_behavior_file_path,
                 date_index=date_index,
                 nwbfile_path=nwbfile_path,
-                column_name_mapping=column_name_mapping,
-                column_descriptions=column_descriptions,
+                column_name_mapping=COLUMN_NAME_MAPPING,
+                column_descriptions=COLUMN_DESCRIPTIONS,
                 subject_metadata=subject_metadata,
                 overwrite=overwrite,
             )
@@ -218,69 +264,6 @@ if __name__ == "__main__":
     raw_behavior_folder_path = Path(r"/Volumes/T9/Constantinople/raw_Bpod")
     rat_info_folder_path = Path(r"/Volumes/T9/Constantinople/Rat_info")
 
-    # The column name mapping is used to rename the columns in the processed data to more descriptive column names.
-    column_name_mapping = dict(
-        trainingstage="training_stage",
-        nic="nose_in_center",
-        catch="is_catch",
-        prob_cacth="catch_percentage",
-        adapt_block="num_trials_in_adaptation_blocks",
-        test_block="num_trials_in_mixed_blocks",
-        reward="reward_volume_ul",
-        reward_delay="reward_delay",
-        block="block_type",
-        hits="is_rewarded",
-        vios="is_violation",
-        optout="is_opt_out",
-        wait_time="wait_time",
-        wait_time_unthresholded="wait_time_unthresholded",
-        wait_thresh="wait_time_threshold",
-        wait_for_cpoke="wait_for_center_poke",
-        zwait_for_cpoke="z_scored_wait_for_center_poke",
-        # timeout="timeout",
-        side="rewarded_port",
-        lpoke="num_left_pokes",
-        rpoke="num_right_pokes",
-        cpoke="num_center_pokes",
-        lpokedur="duration_of_left_pokes",
-        rpokedur="duration_of_right_pokes",
-        cpokedur="duration_of_center_pokes",
-        rt="reaction_time",
-        slrt="side_poke_reaction_time",
-        ITI="inter_trial_interval",
-    )
-    # The column descriptions are used to add descriptions to the columns in the processed data.
-    column_descriptions = dict(
-        trainingstage="The stage of the training.",
-        nic="The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).",
-        catch="Whether the trial is a catch trial.",
-        prob_cacth="The percentage of catch trials.",
-        adapt_block="The number of trials in each high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks.",
-        test_block="The number of trials in each mixed blocks.",
-        reward="The volume of reward in microliters.",
-        reward_delay="The delay in seconds to receive reward, drawn from exponential distribution with mean = 2.5 seconds.",
-        block="The block type (High, Low or Mixed). High and Low blocks are high reward (20, 40, or 80μL) or low reward (5, 10, or 20μL) blocks. The mixed blocks offered all volumes.",
-        hits="Whether the subject received reward for each trial.",
-        vios="Whether the subject violated the trial by not maintaining center poke for the time required by 'nose_in_center'.",
-        optout="Whether the subject opted out for each trial.",
-        wait_time="The wait time for the subject for for each trial in seconds, after removing outliers."
-        " For hit trials (when reward was delivered) the wait time is equal to the reward delay."
-        " For opt-out trials, the wait time is equal to the time waited from trial start to opting out.",
-        wait_for_cpoke="The time between side port poke and center poke in seconds, includes the time when the subject is consuming the reward.",
-        zwait_for_cpoke="The z-scored wait_for_cpoke using all trials.",
-        side="The rewarded port (Left or Right) for each trial.",
-        lpoke="The number of left pokes for each trial.",
-        rpoke="The number of right pokes for each trial.",
-        cpoke="The number of center pokes for each trial.",
-        lpokedur="The duration of left pokes for each trial in seconds.",
-        rpokedur="The duration of right pokes for each trial in seconds.",
-        cpokedur="The duration of center pokes for each trial in seconds.",
-        rt="The reaction time in seconds.",
-        slrt="The side poke reaction time in seconds.",
-        ITI="The time to initiate trial in seconds (the time between the end of the consummatory period and the time to initiate the next trial).",
-        wait_time_unthresholded="The wait time for the subject for each trial in seconds without removing outliers.",
-        wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
-    )
     nwbfile_folder_path = Path("/Users/weian/data/001169")
 
     overwrite = False
@@ -290,7 +273,7 @@ if __name__ == "__main__":
         processed_behavior_folder_path=processed_behavior_folder_path,
         rat_info_folder_path=rat_info_folder_path,
         nwbfile_folder_path=nwbfile_folder_path,
-        column_name_mapping=column_name_mapping,
-        column_descriptions=column_descriptions,
+        column_name_mapping=COLUMN_NAME_MAPPING,
+        column_descriptions=COLUMN_DESCRIPTIONS,
         overwrite=overwrite,
     )

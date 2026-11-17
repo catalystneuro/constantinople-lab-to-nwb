@@ -155,7 +155,7 @@ Behavior:
       output_type: numeric
     IsCatch:
       name: is_catch
-      description: Whether the trial is a catch trial.
+      description: The 'IsCatch' value saved in the Bpod trial settings. This can differ from 'is_catch' in the processed trials table, which marks the trials where the reward delay is 100 seconds.
       expression_type: boolean
       output_type: boolean
     CTrial:
