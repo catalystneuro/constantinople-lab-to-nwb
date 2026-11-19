@@ -142,7 +142,8 @@ def _get_date_index_per_session(
     """
     date_index_per_session = dict()
     bpod_file_path_per_date_index = dict()
-    for bpod_file_path in sorted(Path(file_path) for file_path in bpod_file_paths):
+    # A date with more than one session in the processed behavior file lists its raw files more than once.
+    for bpod_file_path in sorted({Path(file_path) for file_path in bpod_file_paths}):
         date_index = _get_date_index(bpod_file_path=bpod_file_path, a_struct_file_path=a_struct_file_path)
         if date_index is None:
             print(f"Skipping '{bpod_file_path.name}', session not found in the processed behavior file.")

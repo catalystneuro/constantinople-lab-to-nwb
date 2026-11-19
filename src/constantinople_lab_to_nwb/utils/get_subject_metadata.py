@@ -61,6 +61,6 @@ def get_subject_metadata_from_rat_info_folder(
             weight_g = filtered_mass_registry["mass"].astype(int).values[0]  # in grams
             # convert mass to kg
             weight_kg = weight_g / 1000
-            subject_metadata.update(weight=str(weight_kg))
+            subject_metadata.update(weight=f"{weight_kg} kg")
 
     return subject_metadata

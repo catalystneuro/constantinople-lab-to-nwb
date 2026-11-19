@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import h5py
+
 import numpy as np
 from dateutil import tz
 from pynwb.testing.mock.file import mock_NWBFile
@@ -10,7 +12,12 @@ from constantinople_lab_to_nwb.mah_2024.mah_2024_convert_all_sessions import (
     _get_date_index_per_session,
     _get_session_date,
 )
-from constantinople_lab_to_nwb.mah_2024.mah_2024_convert_session import COLUMN_DESCRIPTIONS, COLUMN_NAME_MAPPING
+from constantinople_lab_to_nwb.mah_2024.mah_2024_convert_session import (
+    COLUMN_DESCRIPTIONS,
+    COLUMN_NAME_MAPPING,
+    blank_implausible_times,
+)
+from constantinople_lab_to_nwb.utils import get_subject_metadata_from_rat_info_folder
 
 
 def _write_processed_behavior_file(file_path, dates, num_trials_per_session):
@@ -91,3 +98,39 @@ def test_catch_probability_is_added_to_processed_trials(tmp_path):
     processed_trials = nwbfile.intervals["processed_trials"]
     assert "catch_percentage" in processed_trials.colnames
     np.testing.assert_array_equal(processed_trials["catch_percentage"][:], np.full(5, 0.15))
+
+
+def test_subject_weight_has_unit(tmp_path):
+    registry = dict(
+        RatName=np.array(["E001", "E002"], dtype=object),
+        DOB=np.array(["2021-11-23", "2021-11-23"], dtype=object),
+        sex=np.array(["M", "F"], dtype=object),
+        vendor=np.array(["Hilltop", "Hilltop"], dtype=object),
+    )
+    savemat(tmp_path / "registry.mat", dict(Registry=registry))
+    mass_registry = dict(
+        rat=np.array(["E001", "E002"], dtype=object),
+        date=np.array(["2022-04-07", "2022-04-07"], dtype=object),
+        mass=np.array([237.0, 201.0]),
+    )
+    savemat(tmp_path / "Mass_registry.mat", dict(Mass_registry=mass_registry))
+
+    subject_metadata = get_subject_metadata_from_rat_info_folder(
+        folder_path=tmp_path, subject_id="E001", date="2022-04-07"
+    )
+
+    assert subject_metadata["weight"] == "0.237 kg"
+
+
+def test_implausible_times_are_blanked(tmp_path):
+    nwbfile_path = tmp_path / "test.nwb"
+    with h5py.File(nwbfile_path, mode="w") as file:
+        file["intervals/trials/start_time"] = np.array([6069922.1, 7.2339070901e10, 6069950.3])
+        file["intervals/trials/stop_time"] = np.array([7.3160965e12, 1.31682427e13, 6070013.7])
+
+    num_blanked_values = blank_implausible_times(nwbfile_path=nwbfile_path)
+
+    assert num_blanked_values == 3
+    with h5py.File(nwbfile_path, mode="r") as file:
+        np.testing.assert_array_equal(file["intervals/trials/start_time"][:], [6069922.1, np.nan, 6069950.3])
+        np.testing.assert_array_equal(file["intervals/trials/stop_time"][:], [np.nan, np.nan, 6070013.7])

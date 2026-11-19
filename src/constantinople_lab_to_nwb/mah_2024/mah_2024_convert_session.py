@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Union, Optional
 
+import h5py
+import numpy as np
 from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
@@ -40,7 +42,7 @@ COLUMN_NAME_MAPPING = dict(
 )
 # The column descriptions are used to add descriptions to the columns in the processed data.
 COLUMN_DESCRIPTIONS = dict(
-    trainingstage="The stage of the training.",
+    trainingstage="The training stage as numbered in the Bpod protocol (RWTautowait2). Stage 9 is the final stage with reward blocks. The article numbers its training stages from 1 to 8.",
     nic="The time in seconds when the animal is required to maintain center port to initiate the trial (uniformly drawn from 0.8 - 1.2 seconds).",
     catch="Whether the trial is a catch trial in the processed behavior data (trials where 'reward_delay' is 100 seconds)."
     " This can differ from 'is_catch' in the raw trials table, which is the 'IsCatch' value saved in the Bpod trial settings.",
@@ -69,8 +71,48 @@ COLUMN_DESCRIPTIONS = dict(
     slrt="The side poke reaction time in seconds.",
     ITI="The time to initiate trial in seconds (the time between the end of the consummatory period and the time to initiate the next trial).",
     wait_time_unthresholded="The wait time for the subject for each trial in seconds without removing outliers.",
-    wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of all cumulative wait-times).",
+    wait_thresh="The threshold in seconds to remove wait-times (mean + 1*std of the wait-times of the subject on catch trials, pooled over all sessions).",
 )
+
+
+# A few raw Bpod files hold timestamps that are not valid session times (1e9 seconds and above, e.g. 7.2e10 seconds).
+# Valid times can be large as well, because the Bpod clock is not reset between sessions (up to 6.1e6 seconds,
+# about 70 days). The limit is one year, the duration above which the DANDI validation rejects a file.
+MAX_PLAUSIBLE_TIME_IN_SECONDS = 365.25 * 24 * 60 * 60
+
+TIME_COLUMN_PATHS = (
+    "intervals/trials/start_time",
+    "intervals/trials/stop_time",
+    "intervals/processed_trials/start_time",
+    "intervals/processed_trials/stop_time",
+    "acquisition/task_recording/states/start_time",
+    "acquisition/task_recording/states/stop_time",
+    "acquisition/task_recording/events/timestamp",
+    "acquisition/task_recording/actions/timestamp",
+)
+
+
+def blank_implausible_times(nwbfile_path: Union[str, Path]) -> int:
+    """
+    Set the times above MAX_PLAUSIBLE_TIME_IN_SECONDS to NaN in the trials, states, events and actions tables.
+
+    Returns
+    -------
+    int
+        The number of values that were set to NaN.
+    """
+    num_blanked_values = 0
+    with h5py.File(nwbfile_path, mode="r+") as file:
+        for time_column_path in TIME_COLUMN_PATHS:
+            if time_column_path not in file:
+                continue
+            times = file[time_column_path][:]
+            implausible = times > MAX_PLAUSIBLE_TIME_IN_SECONDS
+            if implausible.any():
+                times[implausible] = np.nan
+                file[time_column_path][:] = times
+                num_blanked_values += int(implausible.sum())
+    return num_blanked_values
 
 
 def session_to_nwb(
@@ -171,6 +213,8 @@ def session_to_nwb(
         conversion_options=conversion_options,
         overwrite=overwrite,
     )
+
+    blank_implausible_times(nwbfile_path=nwbfile_path)
 
 
 if __name__ == "__main__":
