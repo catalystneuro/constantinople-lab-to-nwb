@@ -39,7 +39,7 @@ def get_subject_metadata_from_rat_info_folder(
             date_of_birth = filtered_rat_registry["DOB"].values[0]
             if date_of_birth:
                 # convert date of birth to datetime with format "yyyy-mm-dd"
-                date_of_birth = pd.to_datetime(date_of_birth, format="%Y-%m-%d")
+                date_of_birth = pd.to_datetime(date_of_birth, format="%Y-%m-%d").tz_localize("America/New_York")
                 subject_metadata.update(date_of_birth=date_of_birth)
             else:
                 # TODO: what to do if date of birth is missing?
@@ -61,6 +61,6 @@ def get_subject_metadata_from_rat_info_folder(
             weight_g = filtered_mass_registry["mass"].astype(int).values[0]  # in grams
             # convert mass to kg
             weight_kg = weight_g / 1000
-            subject_metadata.update(weight=str(weight_kg))
+            subject_metadata.update(weight=f"{weight_kg} kg")
 
     return subject_metadata
