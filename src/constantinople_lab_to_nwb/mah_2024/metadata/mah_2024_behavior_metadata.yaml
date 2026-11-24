@@ -105,7 +105,7 @@ Behavior:
       output_type: numeric
     TrainingStage:
       name: training_stage
-      description: The stage of the training.
+      description: The training stage as numbered in the Bpod protocol (RWTautowait2). Stage 9 is the final stage with reward blocks. The article numbers its training stages from 1 to 8.
       expression_type: integer
       output_type: numeric
     DelayToReward:
@@ -155,7 +155,7 @@ Behavior:
       output_type: numeric
     IsCatch:
       name: is_catch
-      description: Whether the trial is a catch trial.
+      description: The 'IsCatch' value saved in the Bpod trial settings. This can differ from 'is_catch' in the processed trials table, which marks the trials where the reward delay is 100 seconds.
       expression_type: boolean
       output_type: boolean
     CTrial:
@@ -205,7 +205,7 @@ Behavior:
       output_type: boolean
     CPCue:
       name: center_port_cue
-      description: Task parameter.
+      description: Whether the tone that signals the offered reward volume is played before trial initiation, while the rat is waiting to poke the center port. True in the sessions of the pre-initiation cue task.
       expression_type: boolean
       output_type: boolean
     CycleBlocks:

@@ -36,6 +36,9 @@ To install *all* the conversion specific dependencies you can run the following 
 pip install -r frozen_dependencies.txt
 ```
 
+The frozen dependencies can be installed with Python 3.10, 3.11 or 3.12. The conda environment created from
+`make_env.yml` uses one of these versions.
+
 ## Repository structure
 Each conversion is organized in a directory of its own in the `src` directory:
 

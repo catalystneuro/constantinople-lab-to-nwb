@@ -3,7 +3,7 @@ channels:
 - conda-forge
 - defaults
 dependencies:
-- python>=3.9
+- python>=3.10,<3.13  # the versions frozen_dependencies.txt can be installed with
 - pip
 - pip:
   - -e .  # This calls the setup and therefore requirements minimal
